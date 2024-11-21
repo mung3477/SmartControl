@@ -7,19 +7,22 @@ from diffusers.models.transformer_2d import Transformer2DModel
 from .mocks import (BasicTransformerBlockForward, Transformer2DModelForward,
                     attn_call, attn_call2_0)
 
-def hook_function(model, name, detach=True):
+
+def save_attn_map(module, module_name, save_loc, detach=True):
+	if hasattr(module.processor, "attn_map"):
+		timestep = module.processor.timestep
+
+		save_loc[timestep] = save_loc.get(timestep, dict())
+		save_loc[timestep][module_name] = module.processor.attn_map.cpu() if detach \
+			else module.processor.attn_map
+
+		del module.processor.attn_map
+
+def hook_function(model, module_name, detach=True):
 	assert hasattr(model, "attn_maps"), f"Attn map implanted module {model.__class__.__name__} should have a class variable `attn_maps` to store attention maps"
 
 	def forward_hook(module, input, output):
-		if hasattr(module.processor, "attn_map"):
-			timestep = module.processor.timestep
-
-			model.attn_maps[timestep] = model.attn_maps.get(timestep, dict())
-			model.attn_maps[timestep][name] = module.processor.attn_map.cpu() if detach \
-				else module.processor.attn_map
-
-			del module.processor.attn_map
-
+		save_attn_map(module, module_name=module_name, save_loc=model.attn_maps, detach=detach)
 	return forward_hook
 
 def register_cross_attention_hook(model, target_name):
