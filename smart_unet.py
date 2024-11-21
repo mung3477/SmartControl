@@ -357,7 +357,7 @@ def upblock2d_forward(self):
             and getattr(self, "b1", None)
             and getattr(self, "b2", None)
         )
-        count =0
+        count = 0
         for resnet in self.resnets:
             # pop res hidden states
             res_hidden_states = res_hidden_states_tuple[-1]
@@ -379,6 +379,7 @@ def upblock2d_forward(self):
             h_1 = torch.cat([hidden_states, res_hidden_states[:,:c_half] + res_hidden_states[:,c_half:]], dim=1)
             h_4 = torch.cat([hidden_states, res_hidden_states[:,:c_half]], dim=1)
             c = torch.sigmoid(c_predictor[count](torch.cat([h_1 , h_4, res_hidden_states[:,c_half:]], dim=1)))
+            import pudb; pudb.set_trace()
             res_hidden_states  = res_hidden_states[:,:c_half] + c* res_hidden_states[:,c_half:]
             count = count+1
 

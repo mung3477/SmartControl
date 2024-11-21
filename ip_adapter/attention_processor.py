@@ -1,4 +1,6 @@
 # modified from https://github.com/huggingface/diffusers/blob/main/src/diffusers/models/attention_processor.py
+from typing import Optional
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -205,6 +207,7 @@ class AttnProcessor2_0(torch.nn.Module):
         encoder_hidden_states=None,
         attention_mask=None,
         temb=None,
+        timestep: Optional[torch.Tensor] = None,
     ):
         residual = hidden_states
 
@@ -308,6 +311,9 @@ class IPAttnProcessor2_0(torch.nn.Module):
         encoder_hidden_states=None,
         attention_mask=None,
         temb=None,
+        height: int = None,
+        width: int = None,
+        timestep: Optional[torch.Tensor] = None,
     ):
         residual = hidden_states
 

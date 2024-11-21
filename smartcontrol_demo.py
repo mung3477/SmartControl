@@ -9,9 +9,9 @@ from pytorch_lightning import seed_everything
 from lib import image_grid, init_store_attn_map, save_attention_maps
 from smartcontrol import register_unet
 
-prompt = 'a superman doing squat'
-ref_fp = "assets/images/deadlift.jpg"
-ref_name = ref_fp.split("/")[-1]
+prompt = 'a girl doing a bicycle kick'
+ref_fp = "assets/images/overhead_kick.png"
+ref_name = ref_fp.split("/")[-1].split(".")[0]
 
 base_model_path = "SG161222/Realistic_Vision_V5.1_noVAE"
 vae_model_path = "stabilityai/sd-vae-ft-mse"
@@ -45,7 +45,7 @@ output = pipe(
 
 ).images[0]
 
-image = image_grid([image.resize((256, 256)), depth_map.resize((256, 256)),output.resize((256,256))], 1, 3)
-image.save(f"{prompt}-{ref_name}.png")
+image = image_grid([image.resize((256, 256)), depth_map.resize((256, 256)),output.resize((256,256))], 1, 3, prompt, options={"fill": (255, 255, 255)})
+image.save(f"output/{prompt}-{ref_name}-smartcontrol.png")
 
-save_attention_maps()
+save_attention_maps(pipe.unet.attn_maps, pipe.tokenizer, prompts=[prompt])

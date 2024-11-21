@@ -368,12 +368,31 @@ def Transformer2DModelForward(
 		encoder_attention_mask = (1 - encoder_attention_mask.to(hidden_states.dtype)) * -10000.0
 		encoder_attention_mask = encoder_attention_mask.unsqueeze(1)
 
+	# Retrieve lora scale.
+	lora_scale = cross_attention_kwargs.get("scale", 1.0) if cross_attention_kwargs is not None else 1.0
+
 	# 1. Input
 	if self.is_input_continuous:
-		batch_size, _, height, width = hidden_states.shape
+		batch, _, height, width = hidden_states.shape
 		residual = hidden_states
-		import pudb; pudb.set_trace()
-		hidden_states, inner_dim = self._operate_on_continuous_inputs(hidden_states)
+		hidden_states = self.norm(hidden_states)
+
+		if not self.use_linear_projection:
+			hidden_states = (
+				self.proj_in(hidden_states, scale=lora_scale)
+				if not USE_PEFT_BACKEND
+				else self.proj_in(hidden_states)
+			)
+			inner_dim = hidden_states.shape[1]
+			hidden_states = hidden_states.permute(0, 2, 3, 1).reshape(batch, height * width, inner_dim)
+		else:
+			inner_dim = hidden_states.shape[1]
+			hidden_states = hidden_states.permute(0, 2, 3, 1).reshape(batch, height * width, inner_dim)
+			hidden_states = (
+				self.proj_in(hidden_states, scale=lora_scale)
+				if not USE_PEFT_BACKEND
+				else self.proj_in(hidden_states)
+			)
 	elif self.is_input_vectorized:
 		hidden_states = self.latent_image_embedding(hidden_states)
 	elif self.is_input_patches:
@@ -425,14 +444,22 @@ def Transformer2DModelForward(
 
 	# 3. Output
 	if self.is_input_continuous:
-		output = self._get_output_for_continuous_inputs(
-			hidden_states=hidden_states,
-			residual=residual,
-			batch_size=batch_size,
-			height=height,
-			width=width,
-			inner_dim=inner_dim,
-		)
+			if not self.use_linear_projection:
+				hidden_states = hidden_states.reshape(batch, height, width, inner_dim).permute(0, 3, 1, 2).contiguous()
+				hidden_states = (
+					self.proj_out(hidden_states, scale=lora_scale)
+					if not USE_PEFT_BACKEND
+					else self.proj_out(hidden_states)
+				)
+			else:
+				hidden_states = (
+					self.proj_out(hidden_states, scale=lora_scale)
+					if not USE_PEFT_BACKEND
+					else self.proj_out(hidden_states)
+				)
+				hidden_states = hidden_states.reshape(batch, height, width, inner_dim).permute(0, 3, 1, 2).contiguous()
+
+			output = hidden_states + residual
 	elif self.is_input_vectorized:
 		output = self._get_output_for_vectorized_inputs(hidden_states)
 	elif self.is_input_patches:

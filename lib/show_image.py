@@ -1,7 +1,12 @@
-from PIL import Image
+from typing import Tuple, TypedDict
+
+from PIL import Image, ImageDraw
 
 
-def image_grid(imgs, rows, cols):
+class TextDraw_Options(TypedDict):
+    fill: Tuple
+
+def image_grid(imgs, rows, cols, prompt, options: TextDraw_Options = { "fill" : (0, 0, 0)}):
     assert len(imgs) == rows*cols
 
     w, h = imgs[0].size
@@ -10,4 +15,8 @@ def image_grid(imgs, rows, cols):
 
     for i, img in enumerate(imgs):
         grid.paste(img, box=(i%cols*w, i//cols*h))
+
+    # https://www.geeksforgeeks.org/adding-text-on-image-using-python-pil/
+    I1 = ImageDraw.Draw(grid)
+    I1.text((10, 10), prompt, fill=options['fill'])
     return grid

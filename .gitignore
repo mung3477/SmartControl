@@ -1,2 +1,6 @@
 **/*.jpg
 **/__pycache__/*
+*.ckpt
+**/*.png
+**/*.bin
+**/*.safetensors
