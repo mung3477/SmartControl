@@ -12,8 +12,9 @@ def make_img_name(args: argparse.Namespace) -> str:
 	ref_name = make_ref_name(args.ref)
 	cntl_type = args.cntl
 	controlnet_conditioning_scale = args.controlnet_conditioning_scale
+	alpha_map = "inferred" if args.alpha_map is None else str(args.alpha_map)
 	seed = args.seed
-	name = f"output/smartcontrol-{prompt}-{cntl_type}-{ref_name}-control-{controlnet_conditioning_scale}-seed-{seed}.png"
+	name = f"smartcontrol-{prompt}-{cntl_type}-{ref_name}-control-{controlnet_conditioning_scale}-alpha-{alpha_map}-seed-{seed}"
 
 	return name
 

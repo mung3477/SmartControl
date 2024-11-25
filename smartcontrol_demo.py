@@ -45,11 +45,11 @@ def main():
 
     image = image_grid([image.resize((256, 256)), control.resize((256, 256)),output.resize((256,256))], 1, 3, prompt, options={"fill": (255, 255, 255)})
     image_name = make_img_name(args)
-    image.save(image_name)
-    print(f"Saved at  ./output/{image_name}!")
+    image.save(f"output/{image_name}.png")
+    print(f"Saved at ./output/{image_name}.png!")
 
-    save_attention_maps(pipe.unet.attn_maps, pipe.tokenizer, prompts=[prompt])
-    save_alpha_masks(pipe.unet.alpha_masks, image_name)
+    save_attention_maps(pipe.unet.attn_maps, pipe.tokenizer, base_dir=f"log/attn_maps/{image_name}", prompts=[prompt])
+    save_alpha_masks(pipe.unet.alpha_masks, f'log/alpha_masks/{image_name}')
 
 if __name__ == "__main__":
     main()

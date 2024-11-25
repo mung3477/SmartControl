@@ -23,7 +23,7 @@ def resize_alpha_mask(alpha_mask: Tensor, size: Size, unconditional: bool):
 	resized = F.interpolate(reshaped, size=size, mode='bilinear', align_corners=False)
 	return (reshaped, resized)
 
-def save_alpha_masks(alpha_masks: dict, cond_name: str, base_dir='log/alpha_masks', unconditional=True):
+def save_alpha_masks(alpha_masks: dict, base_dir='log/alpha_masks', unconditional=True):
 	to_pil = ToPILImage()
 
 	assert_path(base_dir)
@@ -52,14 +52,14 @@ def save_alpha_masks(alpha_masks: dict, cond_name: str, base_dir='log/alpha_mask
 				batch_dir = os.path.join(layer_dir, f'batch-{batch}')
 				assert_path(batch_dir)
 
-				to_pil(mask.to(torch.float32)).save(os.path.join(batch_dir, f"{cond_name}-alpha_mask.png"))
+				to_pil(mask.to(torch.float32)).save(os.path.join(batch_dir, f"alpha_mask.png"))
 
 	total_alpha_mask /= total_alpha_mask_num
 	for batch, mask in enumerate(total_alpha_mask):
 		batch_dir = os.path.join(base_dir, f'batch-{batch}')
 		assert_path(batch_dir)
 
-		to_pil(mask.to(torch.float32)).save(os.path.join(batch_dir, f"{cond_name}-alpha_mask.png"))
+		to_pil(mask.to(torch.float32)).save(os.path.join(batch_dir, f"alpha_mask.png"))
 
 
 def store_alpha_mask(module: Module, module_name: str, store_loc: dict, detach=True):
