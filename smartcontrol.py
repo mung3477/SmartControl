@@ -1,5 +1,7 @@
 import torch
 import torch.nn as nn
+
+from lib import register_alpha_map_hook
 from smart_unet import (ca_forward, crossattnupblock2d_forward,
                         upblock2d_forward)
 
@@ -37,22 +39,29 @@ def load_smartcontrol(unet,smart_ckpt):
     unet.c_pre_list = c_pre_list.to(dtype=torch.float16)
     unet.c_pre_list.load_state_dict(state_dict)
 
+def register_forward_hooks(model: torch.nn.Module, alpha_masks: dict):
+    register_alpha_map_hook(model, module_name=model.__class__.__name__, store_loc=alpha_masks)
+    for name, module in model.named_modules():
+        if module.__class__.__name__ == 'CrossAttnUpBlock2D':
+            register_alpha_map_hook(module, module_name=name, store_loc=alpha_masks)
+        if module.__class__.__name__ == 'UpBlock2D':
+            register_alpha_map_hook(module, module_name=name, store_loc=alpha_masks)
 
-
-
-def register_module(net):
-    for name, subnet in net.named_children():
+def replace_call_methods(module: torch.nn.Module):
+    for name, subnet in module.named_children():
         if subnet.__class__.__name__ == 'CrossAttnUpBlock2D':
             subnet.forward = crossattnupblock2d_forward(subnet)
         if subnet.__class__.__name__ == 'UpBlock2D':
             subnet.forward = upblock2d_forward(subnet)
         elif hasattr(subnet, 'children'):
-            register_module(subnet)
-
-
+            replace_call_methods(subnet)
 
 def register_unet(pipe,smart_ckpt):
     load_smartcontrol(pipe.unet,smart_ckpt)
+
+    pipe.unet.alpha_masks = dict()
     pipe.unet.forward = ca_forward(pipe.unet.cuda())
-    register_module(pipe.unet)
+    register_forward_hooks(pipe.unet, pipe.unet.alpha_masks)
+    replace_call_methods(pipe.unet)
+
     return pipe

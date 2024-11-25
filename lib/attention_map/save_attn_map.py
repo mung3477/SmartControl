@@ -5,7 +5,7 @@ import torch.nn.functional as F
 from torchvision.transforms import ToPILImage
 
 
-def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='attn_maps', unconditional=True):
+def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps', unconditional=True):
 	to_pil = ToPILImage()
 
 	token_ids = tokenizer(prompts)['input_ids']

@@ -3,9 +3,10 @@ from diffusers.models.attention import BasicTransformerBlock
 from diffusers.models.attention_processor import (AttnProcessor,
                                                   AttnProcessor2_0)
 from diffusers.models.transformer_2d import Transformer2DModel
+from diffusers.models.unet_2d_condition import UNet2DConditionModel
 
 from .mocks import (BasicTransformerBlockForward, Transformer2DModelForward,
-                    attn_call, attn_call2_0)
+                    UNet2DConditionModelForward, attn_call, attn_call2_0)
 
 
 def save_attn_map(module, module_name, save_loc, detach=True):
@@ -18,11 +19,11 @@ def save_attn_map(module, module_name, save_loc, detach=True):
 
 		del module.processor.attn_map
 
-def hook_function(model, module_name, detach=True):
+def hook_function(model, name, detach=True):
 	assert hasattr(model, "attn_maps"), f"Attn map implanted module {model.__class__.__name__} should have a class variable `attn_maps` to store attention maps"
 
 	def forward_hook(module, input, output):
-		save_attn_map(module, module_name=module_name, save_loc=model.attn_maps, detach=detach)
+		save_attn_map(module, module_name=name, save_loc=model.attn_maps, detach=detach)
 	return forward_hook
 
 def register_cross_attention_hook(model, target_name):
@@ -50,8 +51,8 @@ def register_cross_attention_hook(model, target_name):
 	return model
 
 def replace_call_method_for_unet(model):
-	#if model.__class__.__name__ == 'UNet2DConditionModel':
-		#model.forward = UNet2DConditionModelForward.__get__(model, UNet2DConditionModel)
+	if model.__class__.__name__ == 'UNet2DConditionModel':
+		model.forward = UNet2DConditionModelForward.__get__(model, UNet2DConditionModel)
 
 	for _, layer in model.named_children():
 		if layer.__class__.__name__ == 'Transformer2DModel':
@@ -85,7 +86,6 @@ def init_pipeline(pipeline):
 	if pipeline.unet.__class__.__name__ == 'UNet2DConditionModel':
 		# save attention maps in this class member
 		pipeline.unet.attn_maps = {}
-		pipeline.unet.alpha_masks = {}
 		# attn2 processor takes charge of the cross-attention
 		pipeline.unet = register_cross_attention_hook(pipeline.unet, 'attn2')
 		pipeline.unet = replace_call_method_for_unet(pipeline.unet)

@@ -10,6 +10,8 @@ from diffusers.utils import (USE_PEFT_BACKEND, BaseOutput, deprecate,
 # from ..utils import is_torch_version, logging
 from diffusers.utils.torch_utils import apply_freeu
 
+FIXED_CONTROL = 0.4
+
 
 def ca_forward(self):
     def forward(
@@ -289,7 +291,10 @@ def ca_forward(self):
             h_1 =  sample + mid_block_additional_residual
             h_4 =  sample
             c = torch.sigmoid(self.c_pre_list[0](torch.cat([h_1 , h_4,mid_block_additional_residual], dim=1)))
+            ############################################# CONTROL ###############################################
             sample = sample + c * mid_block_additional_residual
+            self.alpha_mask = c
+            self.timestep = int(timestep.item())
 
         # 5. up
         for i, upsample_block in enumerate(self.up_blocks):
@@ -313,7 +318,8 @@ def ca_forward(self):
                     upsample_size=upsample_size,
                     attention_mask=attention_mask,
                     encoder_attention_mask=encoder_attention_mask,
-                    c_predictor= self.c_pre_list[(3*i+1) :(3*i+4)]
+                    c_predictor= self.c_pre_list[(3*i+1) :(3*i+4)],
+                    timestep=timestep
                 )
             else:
                 sample = upsample_block(
@@ -322,7 +328,8 @@ def ca_forward(self):
                     res_hidden_states_tuple=res_samples,
                     upsample_size=upsample_size,
                     scale=lora_scale,
-                    c_predictor= self.c_pre_list[(3*i+1) :(3*i+4)]
+                    c_predictor= self.c_pre_list[(3*i+1) :(3*i+4)],
+                    timestep=timestep
                 )
 
         # 6. post-process
@@ -349,7 +356,8 @@ def upblock2d_forward(self):
         temb: Optional[torch.FloatTensor] = None,
         upsample_size: Optional[int] = None,
         scale: float = 1.0,
-        c_predictor =None
+        c_predictor =None,
+        timestep: Optional[torch.Tensor] = None,
     ) -> torch.FloatTensor:
         is_freeu_enabled = (
             getattr(self, "s1", None)
@@ -379,11 +387,18 @@ def upblock2d_forward(self):
             h_1 = torch.cat([hidden_states, res_hidden_states[:,:c_half] + res_hidden_states[:,c_half:]], dim=1)
             h_4 = torch.cat([hidden_states, res_hidden_states[:,:c_half]], dim=1)
             c = torch.sigmoid(c_predictor[count](torch.cat([h_1 , h_4, res_hidden_states[:,c_half:]], dim=1)))
-            import pudb; pudb.set_trace()
-            res_hidden_states  = res_hidden_states[:,:c_half] + c* res_hidden_states[:,c_half:]
+
+            ############################################# CONTROL ###############################################
+            res_hidden_states  = res_hidden_states[:,:c_half] + c * res_hidden_states[:,c_half:]
             count = count+1
 
             hidden_states = torch.cat([hidden_states, res_hidden_states], dim=1)
+
+            ######################### . ALPHA MAP  ###########################
+            if hasattr(self, "store_alpha_mask"):
+                self.alpha_mask = c
+                self.timestep = int(timestep.item())
+            ##################################################################
 
             if self.training and self.gradient_checkpointing:
 
@@ -423,8 +438,8 @@ def crossattnupblock2d_forward(self):
         upsample_size: Optional[int] = None,
         attention_mask: Optional[torch.FloatTensor] = None,
         encoder_attention_mask: Optional[torch.FloatTensor] = None,
+        timestep: Optional[torch.Tensor] = None,
         c_predictor =None
-
     ) -> torch.FloatTensor:
         lora_scale = cross_attention_kwargs.get("scale", 1.0) if cross_attention_kwargs is not None else 1.0
         is_freeu_enabled = (
@@ -434,6 +449,7 @@ def crossattnupblock2d_forward(self):
             and getattr(self, "b2", None)
         )
         count =0
+
         for resnet, attn in zip(self.resnets, self.attentions):
             # pop res hidden states
             res_hidden_states = res_hidden_states_tuple[-1]
@@ -455,10 +471,18 @@ def crossattnupblock2d_forward(self):
             h_1 = torch.cat([hidden_states, res_hidden_states[:,:c_half] + res_hidden_states[:,c_half:]], dim=1)
             h_4 = torch.cat([hidden_states, res_hidden_states[:,:c_half]], dim=1)
             c = torch.sigmoid(c_predictor[count](torch.cat([h_1 , h_4, res_hidden_states[:,c_half:]], dim=1)))
-            res_hidden_states  = res_hidden_states[:,:c_half] + c* res_hidden_states[:,c_half:]
+
+            ############################################# CONTROL ###############################################
+            res_hidden_states  = res_hidden_states[:,:c_half] + c * res_hidden_states[:,c_half:]
             count = count+1
 
             hidden_states = torch.cat([hidden_states, res_hidden_states], dim=1)
+
+            ######################### . ALPHA MAP  ###########################
+            if hasattr(self, "store_alpha_mask"):
+                self.alpha_mask = c
+                self.timestep = int(timestep.item())
+            ##################################################################
 
             if self.training and self.gradient_checkpointing:
 
