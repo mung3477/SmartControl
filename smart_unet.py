@@ -10,10 +10,12 @@ from diffusers.utils import (USE_PEFT_BACKEND, BaseOutput, deprecate,
 # from ..utils import is_torch_version, logging
 from diffusers.utils.torch_utils import apply_freeu
 
-FIXED_CONTROL = 0.4
+from lib import AlphaOptions, generate_mask
 
 
-def ca_forward(self):
+def ca_forward(self, mask_options: AlphaOptions):
+    given_mask_options = mask_options
+
     def forward(
         sample: torch.FloatTensor,
         timestep: Union[torch.Tensor, float, int],
@@ -29,7 +31,6 @@ def ca_forward(self):
         encoder_attention_mask: Optional[torch.Tensor] = None,
         return_dict: bool = True,
     ) -> Union[UNet2DConditionOutput, Tuple]:
-
         default_overall_up_factor = 2**self.num_upsamplers
 
         # upsample size should be forwarded when sample is not a multiple of `default_overall_up_factor`
@@ -292,6 +293,13 @@ def ca_forward(self):
             h_4 =  sample
             c = torch.sigmoid(self.c_pre_list[0](torch.cat([h_1 , h_4,mid_block_additional_residual], dim=1)))
             ############################################# CONTROL ###############################################
+            alpha_mask = generate_mask(
+                alpha_mask=given_mask_options["alpha_mask"],
+                shape=c.shape[-2:],
+                device=self.device
+            )
+            c = alpha_mask * c if not given_mask_options["fixed"] \
+                else alpha_mask.unsqueeze(0).unsqueeze(0).repeat(2, 1, 1, 1)
             sample = sample + c * mid_block_additional_residual
             self.alpha_mask = c
             self.timestep = int(timestep.item())
@@ -319,7 +327,8 @@ def ca_forward(self):
                     attention_mask=attention_mask,
                     encoder_attention_mask=encoder_attention_mask,
                     c_predictor= self.c_pre_list[(3*i+1) :(3*i+4)],
-                    timestep=timestep
+                    timestep=timestep,
+                    given_mask_options=given_mask_options
                 )
             else:
                 sample = upsample_block(
@@ -329,7 +338,8 @@ def ca_forward(self):
                     upsample_size=upsample_size,
                     scale=lora_scale,
                     c_predictor= self.c_pre_list[(3*i+1) :(3*i+4)],
-                    timestep=timestep
+                    timestep=timestep,
+                    given_mask_options=given_mask_options
                 )
 
         # 6. post-process
@@ -358,6 +368,7 @@ def upblock2d_forward(self):
         scale: float = 1.0,
         c_predictor =None,
         timestep: Optional[torch.Tensor] = None,
+        given_mask_options: AlphaOptions = {}
     ) -> torch.FloatTensor:
         is_freeu_enabled = (
             getattr(self, "s1", None)
@@ -389,6 +400,13 @@ def upblock2d_forward(self):
             c = torch.sigmoid(c_predictor[count](torch.cat([h_1 , h_4, res_hidden_states[:,c_half:]], dim=1)))
 
             ############################################# CONTROL ###############################################
+            alpha_mask = generate_mask(
+                alpha_mask=given_mask_options["alpha_mask"],
+                shape=c.shape[-2:],
+                device=res_hidden_states.device
+            )
+            c = alpha_mask * c if not given_mask_options["fixed"] \
+                else alpha_mask.unsqueeze(0).unsqueeze(0).repeat(2, 1, 1, 1)
             res_hidden_states  = res_hidden_states[:,:c_half] + c * res_hidden_states[:,c_half:]
             count = count+1
 
@@ -439,7 +457,8 @@ def crossattnupblock2d_forward(self):
         attention_mask: Optional[torch.FloatTensor] = None,
         encoder_attention_mask: Optional[torch.FloatTensor] = None,
         timestep: Optional[torch.Tensor] = None,
-        c_predictor =None
+        c_predictor =None,
+        given_mask_options: AlphaOptions = {}
     ) -> torch.FloatTensor:
         lora_scale = cross_attention_kwargs.get("scale", 1.0) if cross_attention_kwargs is not None else 1.0
         is_freeu_enabled = (
@@ -473,6 +492,13 @@ def crossattnupblock2d_forward(self):
             c = torch.sigmoid(c_predictor[count](torch.cat([h_1 , h_4, res_hidden_states[:,c_half:]], dim=1)))
 
             ############################################# CONTROL ###############################################
+            alpha_mask = generate_mask(
+                alpha_mask=given_mask_options["alpha_mask"],
+                shape=c.shape[-2:],
+                device=res_hidden_states.device
+            )
+            c = alpha_mask * c if not given_mask_options["fixed"] \
+                else alpha_mask.unsqueeze(0).unsqueeze(0).repeat(2, 1, 1, 1)
             res_hidden_states  = res_hidden_states[:,:c_half] + c * res_hidden_states[:,c_half:]
             count = count+1
 

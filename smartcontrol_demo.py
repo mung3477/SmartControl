@@ -33,7 +33,14 @@ def main():
     pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
     pipe.enable_model_cpu_offload()
     pipe = init_store_attn_map(pipe)
-    pipe = register_unet(pipe,args.smart_ckpt)
+    pipe = register_unet(
+        pipe,
+        args.smart_ckpt,
+        mask_options={
+            "alpha_mask": args.alpha_mask,
+            "fixed": args.alpha_fixed
+        }
+    )
 
     seed_everything(args.seed)
     output = pipe(
@@ -43,7 +50,7 @@ def main():
         controlnet_conditioning_scale = args.controlnet_conditioning_scale
     ).images[0]
 
-    image = image_grid([image.resize((256, 256)), control.resize((256, 256)),output.resize((256,256))], 1, 3, prompt, options={"fill": (255, 255, 255)})
+    image = image_grid([image.resize((256, 256)), control.resize((256, 256)),output.resize((256,256))], 1, 3, caption=image_name, options={"fill": (255, 255, 255)})
     image_name = make_img_name(args)
     image.save(f"output/{image_name}.png")
     print(f"Saved at ./output/{image_name}.png!")

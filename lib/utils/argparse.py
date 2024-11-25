@@ -12,9 +12,10 @@ def make_img_name(args: argparse.Namespace) -> str:
 	ref_name = make_ref_name(args.ref)
 	cntl_type = args.cntl
 	controlnet_conditioning_scale = args.controlnet_conditioning_scale
-	alpha_map = "inferred" if args.alpha_map is None else str(args.alpha_map)
+	alpha_map = "inferred" if args.alpha_mask is None else str(args.alpha_mask)
+	fixed = "fixed" if args.alpha_fixed is True else "multiplied"
 	seed = args.seed
-	name = f"smartcontrol-{prompt}-{cntl_type}-{ref_name}-control-{controlnet_conditioning_scale}-alpha-{alpha_map}-seed-{seed}"
+	name = f"smartcontrol-{prompt}-{cntl_type}-{ref_name}-control-{controlnet_conditioning_scale}-alpha-{alpha_map}-{fixed}-seed-{seed}"
 
 	return name
 
@@ -31,7 +32,8 @@ def decide_cntl(args: argparse.Namespace):
 def parse_args():
 	parser = argparse.ArgumentParser(description="A brief description of your script")
 
-	parser.add_argument('--alpha_map', nargs="*", type=int, default=None, help="Fixed alpha map. [1, 0, 0, 0] means only upper left is used with 1. None uses SmartControl's inferred alpha map.")
+	parser.add_argument('--alpha_mask', nargs="*", type=float, default=[1], help="Mask applied on inferred alpha. [1, 0, 0, 0] means only upper left is used with 1. None uses SmartControl's inferred alpha_mask.")
+	parser.add_argument('--alpha_fixed', action='store_true', default=False, help="Whether to use given alpha as fixed alpha. False means given alpha_mask is multiplied on inferred alpha elementwisely.")
 	parser.add_argument('--cntl', type=str, default="depth", help="Type of condition. (default: depth map)")
 	parser.add_argument('--controlnet_conditioning_scale', type=float, default=1.0, help="Value of controlnet_conditioning_scale")
 	parser.add_argument('--detector_path', type=str, default="lllyasviel/Annotators", help="Path to fetch pretrained control detector")

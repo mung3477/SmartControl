@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from lib import register_alpha_map_hook
+from lib import AlphaOptions, register_alpha_map_hook
 from smart_unet import (ca_forward, crossattnupblock2d_forward,
                         upblock2d_forward)
 
@@ -56,11 +56,11 @@ def replace_call_methods(module: torch.nn.Module):
         elif hasattr(subnet, 'children'):
             replace_call_methods(subnet)
 
-def register_unet(pipe,smart_ckpt):
-    load_smartcontrol(pipe.unet,smart_ckpt)
+def register_unet(pipe, smart_ckpt, mask_options: AlphaOptions):
+    load_smartcontrol(pipe.unet, smart_ckpt)
 
     pipe.unet.alpha_masks = dict()
-    pipe.unet.forward = ca_forward(pipe.unet.cuda())
+    pipe.unet.forward = ca_forward(pipe.unet.cuda(), mask_options=mask_options)
     register_forward_hooks(pipe.unet, pipe.unet.alpha_masks)
     replace_call_methods(pipe.unet)
 
