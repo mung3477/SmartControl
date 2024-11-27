@@ -1,7 +1,7 @@
 import argparse
-from typing import List
 
 from controlnet_aux import CannyDetector, ZoeDetector
+from PIL import Image
 
 
 def make_ref_name(path: str) -> str:
@@ -15,19 +15,24 @@ def make_img_name(args: argparse.Namespace) -> str:
 	alpha_map = "inferred" if args.alpha_mask is None else str(args.alpha_mask)
 	fixed = "fixed" if args.alpha_fixed is True else "multiplied"
 	seed = args.seed
-	name = f"smartcontrol-{prompt}-{cntl_type}-{ref_name}-control-{controlnet_conditioning_scale}-alpha-{alpha_map}-{fixed}-seed-{seed}"
+
+	if args.ip is None:
+		return f"smartcontrol-{prompt}-{cntl_type}-{ref_name}-control-{controlnet_conditioning_scale}-alpha-{alpha_map}-{fixed}-seed-{seed}"
+	else:
+		ip_name = make_ref_name(args.ip)
+		return f"IP-smartcontrol-{prompt}-{cntl_type}-{ref_name}-IP-{ip_name}-control-{controlnet_conditioning_scale}-alpha-{alpha_map}-{fixed}-seed-{seed}"
 
 	return name
 
 def decide_cntl(args: argparse.Namespace):
-    if args.cntl is "depth":
+    if args.cntl == "depth":
         args.smart_ckpt = "./depth.ckpt"
         args.controlnet_path = "lllyasviel/control_v11f1p_sd15_depth"
         args.preprocessor = ZoeDetector.from_pretrained(args.detector_path)
-    elif args.cntl is "canny":
+    elif args.cntl == "canny":
         args.smart_ckpt = "./canny.ckpt"
-        args.controlnet_path = "lllyasviel/control_v11f1p_sd15_canny"
-        args.preprocessor = CannyDetector.from_pretrained(args.detector_path)
+        args.controlnet_path = "lllyasviel/control_v11p_sd15_canny"
+        args.preprocessor = CannyDetector()
 
 def parse_args():
 	parser = argparse.ArgumentParser(description="A brief description of your script")
@@ -40,6 +45,7 @@ def parse_args():
 	parser.add_argument('--seed', type=int, default=12345, help="Seed")
 	parser.add_argument('--prompt', type=str, required=True)
 	parser.add_argument('--ref', type=str, help="A path to an image that will be used as a control", required=True)
+	parser.add_argument('--ip', type=str, default=None, help="A path to an image that will be used as an image prompt")
 
 	args = parser.parse_args()
 	decide_cntl(args)

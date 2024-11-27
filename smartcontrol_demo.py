@@ -22,7 +22,6 @@ def main():
     image = Image.open(image_fp)
     preprocessor = args.preprocessor
     control = preprocessor(image)
-    control_name = make_ref_name(image_fp)
     prompt = args.prompt
 
     controlnet = ControlNetModel.from_pretrained(args.controlnet_path, torch_dtype=torch.float16)
@@ -50,10 +49,10 @@ def main():
         controlnet_conditioning_scale = args.controlnet_conditioning_scale
     ).images[0]
 
-    image = image_grid([image.resize((256, 256)), control.resize((256, 256)),output.resize((256,256))], 1, 3, caption=image_name, options={"fill": (255, 255, 255)})
     image_name = make_img_name(args)
-    image.save(f"output/{image_name}.png")
-    print(f"Saved at ./output/{image_name}.png!")
+    image = image_grid([image.resize((256, 256)), control.resize((256, 256)),output.resize((256,256))], 1, 3, caption=image_name, options={"fill": (255, 255, 255)})
+    image.save(f"output/vanilla/{image_name}.png")
+    print(f"Saved at ./output/vanilla/{image_name}.png!")
 
     save_attention_maps(pipe.unet.attn_maps, pipe.tokenizer, base_dir=f"log/attn_maps/{image_name}", prompts=[prompt])
     save_alpha_masks(pipe.unet.alpha_masks, f'log/alpha_masks/{image_name}')
