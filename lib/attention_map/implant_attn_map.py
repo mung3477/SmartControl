@@ -46,7 +46,7 @@ def register_cross_attention_hook(model, target_name):
 			module.processor.store_attn_map = True
 		"""
 
-		hook = module.register_forward_hook(hook_function(model=model, name=name))
+		hook = module.register_forward_hook(hook_function(model=model, name=f"{model.__class__.__name__}.{name}"))
 
 	return model
 
@@ -83,13 +83,13 @@ def init_pipeline(pipeline):
 	else:
 	"""
 
-	if pipeline.unet.__class__.__name__ == 'UNet2DConditionModel':
+	models = [pipeline.unet, pipeline.controlnet, pipeline.controlnet_sub]
+	for model in models:
 		# save attention maps in this class member
-		pipeline.unet.attn_maps = {}
+		model.attn_maps = {}
 		# attn2 processor takes charge of the cross-attention
-		pipeline.unet = register_cross_attention_hook(pipeline.unet, 'attn2')
-		pipeline.unet = replace_call_method_for_unet(pipeline.unet)
-
+		model = register_cross_attention_hook(model, 'attn2')
+		model = replace_call_method_for_unet(model)
 
 	return pipeline
 

@@ -23,11 +23,13 @@ def main():
     preprocessor = args.preprocessor
     control = preprocessor(image)
     prompt = args.prompt
+    cond_prompt = args.cond_prompt
 
     controlnet = ControlNetModel.from_pretrained(args.controlnet_path, torch_dtype=torch.float16)
+    controlnet_sub = ControlNetModel.from_pretrained(args.controlnet_path, torch_dtype=torch.float16)
     vae = AutoencoderKL.from_pretrained(vae_model_path).to(dtype=torch.float16)
     pipe = StableDiffusionControlNetPipeline.from_pretrained(
-        base_model_path, controlnet=controlnet,vae=vae, torch_dtype=torch.float16
+        base_model_path, controlnet=controlnet, controlnet_sub=controlnet_sub, vae=vae, torch_dtype=torch.float16
     )
     pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
     pipe.enable_model_cpu_offload()
@@ -44,6 +46,7 @@ def main():
     seed_everything(args.seed)
     output = pipe(
         prompt=prompt,
+        condition_prompt=cond_prompt,
         image=control,
         # negative_prompt=negative_prompt_path,
         controlnet_conditioning_scale = args.controlnet_conditioning_scale
@@ -55,6 +58,8 @@ def main():
     print(f"Saved at ./output/vanilla/{image_name}.png!")
 
     save_attention_maps(pipe.unet.attn_maps, pipe.tokenizer, base_dir=f"log/attn_maps/{image_name}", prompts=[prompt])
+    save_attention_maps(pipe.controlnet.attn_maps, pipe.tokenizer, base_dir=f"log/attn_maps/{image_name}", prompts=[prompt])
+    save_attention_maps(pipe.controlnet_sub.attn_maps, pipe.tokenizer, base_dir=f"log/attn_maps/{image_name}", prompts=[cond_prompt], prefix="sub-")
     save_alpha_masks(pipe.unet.alpha_masks, f'log/alpha_masks/{image_name}')
 
 if __name__ == "__main__":
