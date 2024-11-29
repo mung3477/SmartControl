@@ -62,7 +62,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
         conditioning_scale: float = 1.0,
         guess_mode: bool = False,
         return_dict: bool = True,
-        condition_prompt: str = None,
+        prompt: str = None,
         output_name: str = None,
         options: AttnSaveOptions = default_option,
     ):
@@ -81,7 +81,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			{timestep_key: controlNet.attn_maps[timestep_key]},
 			self.tokenizer,
 			base_dir=f"log/attn_maps/{output_name}",
-			prompts=[condition_prompt],
+			prompts=[prompt],
 			options=options
 		)
 		return down_block_res_samples, mid_block_res_sample, organized
@@ -450,9 +450,9 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					self.controlnet_sub,
 					control_model_input,
 					t,
+					prompt=condition_prompt,
 					encoder_hidden_states=cond_prompt_embeds,
 					controlnet_cond=image,
-					condition_prompt=condition_prompt,
 					conditioning_scale=cond_scale,
 					guess_mode=guess_mode,
 					options={
@@ -465,9 +465,9 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					self.controlnet,
 					control_model_input,
 					t,
+					prompt=prompt,
 					encoder_hidden_states=controlnet_prompt_embeds,
 					controlnet_cond=image,
-					condition_prompt=prompt,
 					conditioning_scale=cond_scale,
 					guess_mode=guess_mode,
 					options={
