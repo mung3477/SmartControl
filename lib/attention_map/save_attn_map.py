@@ -1,4 +1,5 @@
 import os
+from typing import TypedDict
 
 import torch
 import torch.nn.functional as F
@@ -7,13 +8,24 @@ from torchvision.transforms import ToPILImage
 from ..utils import assert_path
 
 
-def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps', unconditional=True, prefix=""):
+class AttnSaveOptions(TypedDict):
+	prefix: str = ""
+	return_dict: bool = False
+
+default_option: AttnSaveOptions = {
+	'prefix': "",
+	'return_dict': False
+}
+
+def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps', unconditional=True, options: AttnSaveOptions = default_option):
 	to_pil = ToPILImage()
 
 	token_ids = tokenizer(prompts)['input_ids']
 	total_tokens = []
 	for token_id in token_ids:
 		total_tokens.append(tokenizer.convert_ids_to_tokens(token_id))
+
+	organized_attn_maps = {}
 
 	assert_path(base_dir)
 
@@ -48,6 +60,8 @@ def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps',
 				if not os.path.exists(batch_dir):
 					os.mkdir(batch_dir)
 
+				organized_attn_maps[batch_dir] = {}
+
 				startofword = True
 				for i, (token, a) in enumerate(zip(tokens, attn[:len(tokens)])):
 					if '</w>' in token:
@@ -65,7 +79,10 @@ def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps',
 						else:
 							token = '-' + token + '-'
 
-					to_pil(a.to(torch.float32)).save(os.path.join(batch_dir, f'{prefix}{i}-{token}.png'))
+					a = to_pil(a.to(torch.float32))
+					filename = f'{options["prefix"]}{i}-{token}.png'
+					a.save(os.path.join(batch_dir, filename))
+					organized_attn_maps[batch_dir][filename] = a
 
 	total_attn_map /= total_attn_map_number
 	for batch, (attn_map, tokens) in enumerate(zip(total_attn_map, total_tokens)):
@@ -91,3 +108,7 @@ def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps',
 					token = '-' + token + '-'
 
 			to_pil(a.to(torch.float32)).save(os.path.join(batch_dir, f'{i}-{token}.png'))
+
+	if options["return_dict"]:
+		return organized_attn_maps
+	return None

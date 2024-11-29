@@ -33,7 +33,11 @@ def calc_diff(img1_path: str, img2_path: str, name: str):
 
     diff = ImageChops.subtract(img1, img2)
     grid = image_grid(
-        [img1.resize((256, 256)), img2.resize((256, 256)), diff.resize((256, 256))],
+        [
+                img1.resize((256, 256), resample=Image.NEAREST),
+                img2.resize((256, 256), resample=Image.NEAREST),
+                diff.resize((256, 256), resample=Image.NEAREST)
+        ],
         rows=1,
         cols=3,
         caption=f"diff btw {img1_path} and {img2_path}",
