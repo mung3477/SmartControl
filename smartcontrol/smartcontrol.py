@@ -40,11 +40,9 @@ def load_smartcontrol(unet,smart_ckpt):
     unet.c_pre_list.load_state_dict(state_dict)
 
 def register_forward_hooks(model: torch.nn.Module, alpha_masks: dict):
-    register_alpha_map_hook(model, module_name=model.__class__.__name__, store_loc=alpha_masks)
+    target_module_names = ['UNetMidBlock2DCrossAttn', 'CrossAttnUpBlock2D', 'UpBlock2D']
     for name, module in model.named_modules():
-        if module.__class__.__name__ == 'CrossAttnUpBlock2D':
-            register_alpha_map_hook(module, module_name=name, store_loc=alpha_masks)
-        if module.__class__.__name__ == 'UpBlock2D':
+        if module.__class__.__name__ in target_module_names:
             register_alpha_map_hook(module, module_name=name, store_loc=alpha_masks)
 
 def replace_call_methods(module: torch.nn.Module):
