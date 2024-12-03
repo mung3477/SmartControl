@@ -83,7 +83,7 @@ def init_pipeline(pipeline):
 	else:
 	"""
 
-	models = [pipeline.unet, pipeline.controlnet, pipeline.controlnet_sub]
+	models = [pipeline.unet, pipeline.controlnet]
 	for model in models:
 		# save attention maps in this class member
 		model.attn_maps = {}

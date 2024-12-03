@@ -79,10 +79,13 @@ def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps',
 						else:
 							token = '-' + token + '-'
 
-					a = to_pil(a.to(torch.float32))
 					filename = f'{options["prefix"]}{i}-{token}.png'
-					a.save(os.path.join(batch_dir, filename))
 					organized_attn_maps[batch_dir][filename] = a
+
+					a_img = to_pil(a.to(torch.float32))
+					a_img.save(os.path.join(batch_dir, filename))
+					del a_img
+
 
 	total_attn_map /= total_attn_map_number
 	for batch, (attn_map, tokens) in enumerate(zip(total_attn_map, total_tokens)):
@@ -107,7 +110,8 @@ def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps',
 				else:
 					token = '-' + token + '-'
 
-			to_pil(a.to(torch.float32)).save(os.path.join(batch_dir, f'{i}-{token}.png'))
+			a_img = to_pil(a.to(torch.float32)).save(os.path.join(batch_dir, f'{i}-{token}.png'))
+			del a_img
 
 	if options["return_dict"]:
 		return organized_attn_maps

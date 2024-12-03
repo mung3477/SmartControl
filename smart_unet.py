@@ -254,12 +254,11 @@ def ca_forward(self, mask_options: AlphaOptions):
 
         if is_controlnet:
             new_down_block_res_samples = ()
-
             for down_block_res_sample, down_block_additional_residual in zip(
                 down_block_res_samples, down_block_additional_residuals
             ):
                 # down_block_res_sample = down_block_res_sample + down_block_additional_residual
-                down_block_res_sample = torch.concat((down_block_res_sample, down_block_additional_residual),dim=1)
+                down_block_res_sample = torch.concat((down_block_res_sample, down_block_additional_residual), dim=1)
                 new_down_block_res_samples = new_down_block_res_samples + (down_block_res_sample,)
 
             down_block_res_samples = new_down_block_res_samples
@@ -301,8 +300,8 @@ def ca_forward(self, mask_options: AlphaOptions):
             c = alpha_mask * c if not given_mask_options["fixed"] \
                 else alpha_mask.unsqueeze(0).unsqueeze(0).repeat(2, 1, 1, 1)
             sample = sample + c * mid_block_additional_residual
-            self.alpha_mask = c
-            self.timestep = int(timestep.item())
+            self.mid_block.alpha_mask = c
+            self.mid_block.timestep = int(timestep.item())
 
         # 5. up
         for i, upsample_block in enumerate(self.up_blocks):
