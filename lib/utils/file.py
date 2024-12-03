@@ -3,4 +3,4 @@ import os
 
 def assert_path(path: str):
 	if not os.path.exists(path):
-		os.mkdir(path)
+		os.makedirs(path, exist_ok=True)

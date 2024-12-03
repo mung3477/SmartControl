@@ -266,6 +266,7 @@ def ca_forward(self, mask_options: AlphaOptions):
         # 4. mid
         if self.mid_block is not None:
             if hasattr(self.mid_block, "has_cross_attention") and self.mid_block.has_cross_attention:
+
                 sample = self.mid_block(
                     sample,
                     emb,

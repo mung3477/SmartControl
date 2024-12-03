@@ -84,7 +84,6 @@ def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps',
 
 					a_img = to_pil(a.to(torch.float32))
 					a_img.save(os.path.join(batch_dir, filename))
-					del a_img
 
 
 	total_attn_map /= total_attn_map_number
@@ -111,7 +110,6 @@ def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps',
 					token = '-' + token + '-'
 
 			a_img = to_pil(a.to(torch.float32)).save(os.path.join(batch_dir, f'{i}-{token}.png'))
-			del a_img
 
 	if options["return_dict"]:
 		return organized_attn_maps

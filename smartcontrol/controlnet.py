@@ -80,25 +80,23 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			return_dict=return_dict,
 		)
 
-		"""
 		timestep_key = timestep.item()
 		organized = save_attention_maps(
-			{timestep_key: controlNet.attn_maps[timestep_key]},
+			{timestep_key: self.controlnet.attn_maps[timestep_key]},
 			self.tokenizer,
 			base_dir=f"log/attn_maps/{output_name}",
 			prompts=[prompt],
 			options=attn_options
 		)
-		del controlNet.attn_maps[timestep_key]
-		"""
+		del self.controlnet.attn_maps[timestep_key]
 
-		return down_block_res_samples, mid_block_res_sample, {}
+		return down_block_res_samples, mid_block_res_sample, organized
 
-	def infer_alpha_mask(self, gen_prompt: str, cond_prompt_attns: dict, gen_prompt_attns: dict, trgt_token: AttnDiffTrgtTokens):
+	def infer_alpha_mask(self, output_name: str, timestep: int, cond_prompt_attns: dict, gen_prompt_attns: dict, trgt_token: AttnDiffTrgtTokens):
 		to_pil = ToPILImage()
 		blocks = ["mid_block", "down_blocks.2", "down_blocks.1", "down_blocks.0"]
 		masks = {}
-		save_dir = f"log/alpha_masks/inferred/{gen_prompt}"
+		save_dir = f"log/alpha_masks/inferred/{output_name}"
 
 		assert_path(save_dir)
 
@@ -518,16 +516,12 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					}
 				)
 
-				"""
 				inferred_mask = self.infer_alpha_mask(
-					gen_prompt=prompt,
+					output_name=output_name,
 					cond_prompt_attns=cond_prompt_attn,
 					gen_prompt_attns=gen_prompt_attn,
 					trgt_token={ "cond": "man", "gen": "dog"}
 				)
-				del cond_prompt_attn
-				del inferred_mask
-				"""
 
 				############################################################################
 

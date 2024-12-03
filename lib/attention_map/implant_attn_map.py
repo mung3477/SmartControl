@@ -1,4 +1,5 @@
 
+import torch
 from diffusers.models.attention import BasicTransformerBlock
 from diffusers.models.attention_processor import (AttnProcessor,
                                                   AttnProcessor2_0)
@@ -18,6 +19,7 @@ def save_attn_map(module, module_name, save_loc, detach=True):
 			else module.processor.attn_map
 
 		del module.processor.attn_map
+		torch.cuda.empty_cache()
 
 def hook_function(model, name, detach=True):
 	assert hasattr(model, "attn_maps"), f"Attn map implanted module {model.__class__.__name__} should have a class variable `attn_maps` to store attention maps"
