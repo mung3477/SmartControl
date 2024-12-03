@@ -96,7 +96,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		to_pil = ToPILImage()
 		blocks = ["mid_block", "down_blocks.2", "down_blocks.1", "down_blocks.0"]
 		masks = {}
-		save_dir = f"log/alpha_masks/inferred/{output_name}"
+		save_dir = f"log/alpha_masks/inferred/{output_name}/{timestep}"
 
 		assert_path(save_dir)
 
@@ -541,6 +541,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					cross_attention_kwargs=self.cross_attention_kwargs,
 					down_block_additional_residuals=down_block_res_samples,
 					mid_block_additional_residual=mid_block_res_sample,
+					inferred_mask=inferred_mask,
 					added_cond_kwargs=added_cond_kwargs,
 					return_dict=False,
 				)[0]
