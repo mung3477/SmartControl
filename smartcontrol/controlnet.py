@@ -128,6 +128,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 
 		return masks
 
+	@torch.no_grad()
 	def __call__(
 		self,
 		prompt: Union[str, List[str]] = None,
