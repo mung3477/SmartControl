@@ -22,7 +22,10 @@ def make_img_name(args: argparse.Namespace) -> str:
 		ip_name = make_ref_name(args.ip)
 		return f"IP-smartcontrol-{prompt}-{cntl_type}-{ref_name}-IP-{ip_name}-control-{controlnet_conditioning_scale}-alpha-{alpha_map}-{fixed}-seed-{seed}"
 
-	return name
+def check_args(args: argparse.Namespace):
+	if args.alpha_attn_diff is True:
+		assert hasattr(args, "cond_prompt"), "You should provide condition prompt to use alpha masks inferred with cross attention differences."
+
 
 def decide_cntl(args: argparse.Namespace):
     if args.cntl == "depth":
@@ -39,6 +42,7 @@ def parse_args():
 
 	parser.add_argument('--alpha_mask', nargs="*", type=float, default=[1], help="Mask applied on inferred alpha. [1, 0, 0, 0] means only upper left is used with 1. None uses SmartControl's inferred alpha_mask.")
 	parser.add_argument('--alpha_fixed', action='store_true', default=False, help="Whether to use given alpha as fixed alpha. False means given alpha_mask is multiplied on inferred alpha elementwisely.")
+	parser.add_argument('--alpha_attn_diff', action='store_true', default=False, help="Whether to calculate alpha with differences btw two cross attentions on generate prompt and condition prompt.")
 	parser.add_argument('--cntl', type=str, default="depth", help="Type of condition. (default: depth map)")
 	parser.add_argument('--controlnet_conditioning_scale', type=float, default=1.0, help="Value of controlnet_conditioning_scale")
 	parser.add_argument('--detector_path', type=str, default="lllyasviel/Annotators", help="Path to fetch pretrained control detector")
@@ -49,6 +53,7 @@ def parse_args():
 	parser.add_argument('--ip', type=str, default=None, help="A path to an image that will be used as an image prompt")
 
 	args = parser.parse_args()
+	check_args(args)
 	decide_cntl(args)
 
 	return args

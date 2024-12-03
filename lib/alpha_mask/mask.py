@@ -1,12 +1,25 @@
-from typing import List, Optional, TypedDict
+from typing import Dict, List, Optional, TypedDict
 
 import numpy as np
 import torch
+from torch import Tensor
 
 
 class AlphaOptions(TypedDict):
     alpha_mask: List[int]
     fixed: bool
+
+class BlockInfo(TypedDict):
+	name: str
+	idx: int
+
+class Masks(TypedDict):
+	user_given: Tensor
+	smartcntl_inferred: Tensor
+	attn_diff_inferred: Tensor
+
+COND_BLOCKS = ["mid_block", "down_blocks.2", "down_blocks.1", "down_blocks.0"]
+
 
 def split_dim(dim_len: int, split_num: int):
 	sections = [dim_len // split_num] * split_num
@@ -41,3 +54,28 @@ def generate_mask(alpha_mask: List[int], shape: torch.Size, device: torch.device
 		masks.append(mask_row)
 
 	return torch.concat(masks).to(device=device)
+
+def _get_paired_resblock_name(name: str, idx: int):
+		if name == "UNetMidBlock2DCrossAttn":
+			return "mid_block"
+		# up_blocks.1 <--> down_blocks.2, up_blocks.2 <--> down_blocks.1
+		elif name == "CrossAttnUpBlock2D":
+			return f"down_blocks.{3 - idx}"
+		return None
+
+def get_paired_resblock_mask(block_info: BlockInfo, inferred_masks: Optional[Dict]):
+	paired_name = _get_paired_resblock_name(block_info["name"], block_info["idx"])
+
+	if paired_name is None or inferred_masks is None:
+		return None
+
+	assert paired_name in inferred_masks.keys(), f"block named {paired_name} is not in inferred masks for {str(inferred_masks.keys())}"
+
+	return inferred_masks[paired_name]
+
+def choose_alpha_mask(masks: Masks, use_fixed_mask=False):
+	if masks["attn_diff_inferred"] is not None:
+		return masks["attn_diff_inferred"].unsqueeze(0).unsqueeze(0).repeat(2, 1, 1, 1)
+	if use_fixed_mask:
+		return masks["user_given"].unsqueeze(0).unsqueeze(0).repeat(2, 1, 1, 1)
+	return masks["user_given"] * masks["smartcntl_inferred"]

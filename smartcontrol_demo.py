@@ -51,7 +51,8 @@ def main():
         image=control,
         # negative_prompt=negative_prompt_path,
         controlnet_conditioning_scale = args.controlnet_conditioning_scale,
-        output_name = image_name
+        output_name = image_name,
+        use_attn_diff = args.alpha_attn_diff
     ).images[0]
 
 

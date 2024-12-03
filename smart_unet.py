@@ -10,7 +10,8 @@ from diffusers.utils import (USE_PEFT_BACKEND, BaseOutput, deprecate,
 # from ..utils import is_torch_version, logging
 from diffusers.utils.torch_utils import apply_freeu
 
-from lib import AlphaOptions, generate_mask
+from lib import (AlphaOptions, choose_alpha_mask, generate_mask,
+                 get_paired_resblock_mask)
 
 
 def ca_forward(self, mask_options: AlphaOptions):
@@ -28,6 +29,7 @@ def ca_forward(self, mask_options: AlphaOptions):
         down_block_additional_residuals: Optional[Tuple[torch.Tensor]] = None,
         mid_block_additional_residual: Optional[torch.Tensor] = None,
         down_intrablock_additional_residuals: Optional[Tuple[torch.Tensor]] = None,
+        inferred_masks: Optional[Dict] = None,
         encoder_attention_mask: Optional[torch.Tensor] = None,
         return_dict: bool = True,
     ) -> Union[UNet2DConditionOutput, Tuple]:
@@ -298,8 +300,22 @@ def ca_forward(self, mask_options: AlphaOptions):
                 shape=c.shape[-2:],
                 device=self.device
             )
-            c = alpha_mask * c if not given_mask_options["fixed"] \
-                else alpha_mask.unsqueeze(0).unsqueeze(0).repeat(2, 1, 1, 1)
+            paired_resblock_mask = get_paired_resblock_mask(
+                block_info={
+                    "name": self.mid_block.__class__.__name__,
+                    "idx": 0
+                },
+                inferred_masks=inferred_masks
+            )
+            c = choose_alpha_mask(
+                masks={
+                    "user_given": alpha_mask,
+                    "smartcntl_inferred": c,
+                    "attn_diff_inferred": paired_resblock_mask.to(self.device)
+                },
+                use_fixed_mask=given_mask_options["fixed"]
+            )
+
             sample = sample + c * mid_block_additional_residual
             self.mid_block.alpha_mask = c
             self.mid_block.timestep = int(timestep.item())
@@ -328,6 +344,12 @@ def ca_forward(self, mask_options: AlphaOptions):
                     encoder_attention_mask=encoder_attention_mask,
                     c_predictor= self.c_pre_list[(3*i+1) :(3*i+4)],
                     timestep=timestep,
+                    paired_resblock_mask=get_paired_resblock_mask(
+                        block_info={
+                            "name": upsample_block.__class__.__name__,
+                            "idx": i
+                        }
+                    ),
                     given_mask_options=given_mask_options
                 )
             else:
@@ -457,6 +479,7 @@ def crossattnupblock2d_forward(self):
         attention_mask: Optional[torch.FloatTensor] = None,
         encoder_attention_mask: Optional[torch.FloatTensor] = None,
         timestep: Optional[torch.Tensor] = None,
+        paired_resblock_mask: Optional[Dict] = None,
         c_predictor =None,
         given_mask_options: AlphaOptions = {}
     ) -> torch.FloatTensor:
@@ -497,8 +520,15 @@ def crossattnupblock2d_forward(self):
                 shape=c.shape[-2:],
                 device=res_hidden_states.device
             )
-            c = alpha_mask * c if not given_mask_options["fixed"] \
-                else alpha_mask.unsqueeze(0).unsqueeze(0).repeat(2, 1, 1, 1)
+            c = choose_alpha_mask(
+                masks={
+                    "user_given": alpha_mask,
+                    "smartcntl_inferred": c,
+                    "attn_diff_inferred": paired_resblock_mask
+                },
+                use_fixed_mask=given_mask_options["fixed"]
+            )
+
             res_hidden_states  = res_hidden_states[:,:c_half] + c * res_hidden_states[:,c_half:]
             count = count+1
 

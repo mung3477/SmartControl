@@ -23,7 +23,7 @@ from torchvision.transforms import ToPILImage
 from transformers import (CLIPImageProcessor, CLIPTextModel, CLIPTokenizer,
                           CLIPVisionModelWithProjection)
 
-from lib import (AttnSaveOptions, assert_path, default_option,
+from lib import (COND_BLOCKS, AttnSaveOptions, assert_path, default_option,
                  save_attention_maps)
 
 from .types import AttnDiffTrgtTokens
@@ -94,7 +94,6 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 
 	def infer_alpha_mask(self, output_name: str, timestep: int, cond_prompt_attns: dict, gen_prompt_attns: dict, trgt_token: AttnDiffTrgtTokens):
 		to_pil = ToPILImage()
-		blocks = ["mid_block", "down_blocks.2", "down_blocks.1", "down_blocks.0"]
 		masks = {}
 		save_dir = f"log/alpha_masks/inferred/{output_name}/{timestep}"
 
@@ -111,7 +110,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			filtered_attns = [_filter_dict_with_key(block, trgt_token) for block in blocks]
 			return [attn for filtered in filtered_attns for attn in filtered]
 
-		for trgt_block in blocks:
+		for trgt_block in COND_BLOCKS:
 			cond_attns = _filter_attns(cond_prompt_attns, trgt_block=trgt_block, trgt_token=trgt_token["cond"])
 			gen_attns = _filter_attns(gen_prompt_attns, trgt_block=trgt_block, trgt_token=trgt_token["gen"])
 
@@ -148,6 +147,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		ip_adapter_image: Optional[PipelineImageInput] = None,
 		output_type: Optional[str] = "pil",
 		return_dict: bool = True,
+		use_attn_diff: bool = False,
 		cross_attention_kwargs: Optional[Dict[str, Any]] = None,
 		controlnet_conditioning_scale: Union[float, List[float]] = 1.0,
 		guess_mode: bool = False,
@@ -484,22 +484,6 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					cond_scale = controlnet_cond_scale * controlnet_keep[i]
 
 				############################################################################
-				_, _2, cond_prompt_attn = self.control_branch_forward(
-					control_model_input,
-					t,
-					prompt=condition_prompt,
-					encoder_hidden_states=cond_prompt_embeds,
-					controlnet_cond=image,
-					conditioning_scale=cond_scale,
-					guess_mode=guess_mode,
-					return_dict=False,
-					output_name=output_name,
-					attn_options={
-						"prefix": "sub-",
-						"return_dict": True
-					}
-				)
-
 				down_block_res_samples, mid_block_res_sample, gen_prompt_attn = self.control_branch_forward(
 					control_model_input,
 					t,
@@ -515,14 +499,32 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 						"return_dict": True
 					}
 				)
+				inferred_masks = None
 
-				inferred_mask = self.infer_alpha_mask(
-					output_name=output_name,
-					cond_prompt_attns=cond_prompt_attn,
-					gen_prompt_attns=gen_prompt_attn,
-					trgt_token={ "cond": "man", "gen": "dog"}
-				)
+				if use_attn_diff is True:
+					_, _2, cond_prompt_attn = self.control_branch_forward(
+						control_model_input,
+						t,
+						prompt=condition_prompt,
+						encoder_hidden_states=cond_prompt_embeds,
+						controlnet_cond=image,
+						conditioning_scale=cond_scale,
+						guess_mode=guess_mode,
+						return_dict=False,
+						output_name=output_name,
+						attn_options={
+							"prefix": "sub-",
+							"return_dict": True
+						}
+					)
 
+					inferred_masks = self.infer_alpha_mask(
+						output_name=output_name,
+						timestep=t,
+						cond_prompt_attns=cond_prompt_attn,
+						gen_prompt_attns=gen_prompt_attn,
+						trgt_token={ "cond": "man", "gen": "dog"}
+					)
 				############################################################################
 
 				if guess_mode and self.do_classifier_free_guidance:
@@ -541,7 +543,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					cross_attention_kwargs=self.cross_attention_kwargs,
 					down_block_additional_residuals=down_block_res_samples,
 					mid_block_additional_residual=mid_block_res_sample,
-					inferred_mask=inferred_mask,
+					inferred_masks=inferred_masks,
 					added_cond_kwargs=added_cond_kwargs,
 					return_dict=False,
 				)[0]
