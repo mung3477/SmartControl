@@ -16,6 +16,13 @@ def make_img_name(args: argparse.Namespace) -> str:
 	fixed = "fixed" if args.alpha_fixed is True else "multiplied"
 	seed = args.seed
 
+	alpha_map = "smartcntrl-inferred"
+	if args.alpha_attn_diff is True:
+		alpha_map = f"attn-inferred-{args.gen_tkn} vs {args.cond_tkn}"
+	elif args.alpha_mask is not None:
+		alpha_map = str(args.alpha_mask)
+
+
 	if args.ip is None:
 		return f"smartcontrol-{prompt}-{cntl_type}-{ref_name}-control-{controlnet_conditioning_scale}-alpha-{alpha_map}-{fixed}-seed-{seed}"
 	else:
@@ -25,6 +32,8 @@ def make_img_name(args: argparse.Namespace) -> str:
 def check_args(args: argparse.Namespace):
 	if args.alpha_attn_diff is True:
 		assert hasattr(args, "cond_prompt"), "You should provide condition prompt to use alpha masks inferred with cross attention differences."
+		assert hasattr(args, "gen_tkn"), "You should provide a token from generation prompt to calculate cross attention difference."
+		assert hasattr(args, "cond_tkn"), "You should provide a token from condition prompt to calculate cross attention difference."
 
 
 def decide_cntl(args: argparse.Namespace):
@@ -48,7 +57,9 @@ def parse_args():
 	parser.add_argument('--detector_path', type=str, default="lllyasviel/Annotators", help="Path to fetch pretrained control detector")
 	parser.add_argument('--seed', type=int, default=12345, help="Seed")
 	parser.add_argument('--prompt', type=str, required=True)
+	parser.add_argument('--gen_tkn', type=str, help="Token in generation prompt to calculate difference with condition prompt")
 	parser.add_argument('--cond_prompt', type=str, help="Prompt to be cross-attentioned with condition image latent")
+	parser.add_argument('--cond_tkn', type=str, help="Token in condition prompt to calculate difference with generation prompt")
 	parser.add_argument('--ref', type=str, help="A path to an image that will be used as a control", required=True)
 	parser.add_argument('--ip', type=str, default=None, help="A path to an image that will be used as an image prompt")
 

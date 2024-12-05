@@ -130,6 +130,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		self,
 		prompt: Union[str, List[str]] = None,
 		condition_prompt: Optional[str] = None,
+		trgt_token: Optional[AttnDiffTrgtTokens] = None,
 		image: PipelineImageInput = None,
 		output_name: str = None,
 		height: Optional[int] = None,
@@ -523,7 +524,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 						timestep=t,
 						cond_prompt_attns=cond_prompt_attn,
 						gen_prompt_attns=gen_prompt_attn,
-						trgt_token={ "cond": "man", "gen": "dog"}
+						trgt_token=trgt_token
 					)
 				############################################################################
 

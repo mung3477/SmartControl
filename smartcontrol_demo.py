@@ -52,7 +52,11 @@ def main():
         # negative_prompt=negative_prompt_path,
         controlnet_conditioning_scale = args.controlnet_conditioning_scale,
         output_name = image_name,
-        use_attn_diff = args.alpha_attn_diff
+        use_attn_diff = args.alpha_attn_diff,
+        trgt_token={
+            "gen": args.gen_tkn,
+            "cond": args.cond_tkn
+        }
     ).images[0]
 
 
