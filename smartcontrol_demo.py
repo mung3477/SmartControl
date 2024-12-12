@@ -73,7 +73,7 @@ def main():
         options={
             "prefix": "",
             "return_dict": False,
-            "ignore_special_tkns": args.ignore_special_tkns
+            "ignore_special_tkns": False
         })
     save_alpha_masks(pipe.unet.alpha_masks, f'log/alpha_masks/{image_name}')
 

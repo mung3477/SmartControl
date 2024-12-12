@@ -23,8 +23,11 @@ def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps',
 	to_pil = ToPILImage()
 
 	token_ids = tokenizer(prompts)['input_ids']
+
 	total_tokens = []
 	for token_id in token_ids:
+		if options["ignore_special_tkns"]:
+			token_id = token_id[1:-1]
 		total_tokens.append(tokenizer.convert_ids_to_tokens(token_id))
 
 	organized_attn_maps = {}
