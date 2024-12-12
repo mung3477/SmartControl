@@ -106,7 +106,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 
 		return down_block_res_samples, mid_block_res_sample, organized
 
-	def infer_alpha_mask(self, output_name: str, timestep: int, cond_prompt_attns: dict, gen_prompt_attns: dict, trgt_token: AttnDiffTrgtTokens):
+	def infer_alpha_mask(self, output_name: str, timestep: int, cond_prompt_attns: dict, gen_prompt_attns: dict, trgt_tokens: AttnDiffTrgtTokens):
 		to_pil = ToPILImage()
 		masks = {}
 		save_dir = f"log/alpha_masks/inferred/{output_name}/{timestep}"
@@ -124,9 +124,20 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			filtered_attns = [_filter_dict_with_key(block, trgt_token) for block in blocks]
 			return [attn for filtered in filtered_attns for attn in filtered]
 
+		def _aggregate_attns(attns: dict, trgt_block: str, tokens: List[str]):
+			aggregated = None
+			for token in tokens:
+				attn = _filter_attns(attns=attns, trgt_block=trgt_block, trgt_token=token)
+				if aggregated is None:
+					aggregated = np.array(attn)
+				else:
+					aggregated += np.array(attn)
+			aggregated /= len(tokens)
+			return aggregated
+
 		for trgt_block in COND_BLOCKS:
-			cond_attns = _filter_attns(cond_prompt_attns, trgt_block=trgt_block, trgt_token=trgt_token["cond"])
-			gen_attns = _filter_attns(gen_prompt_attns, trgt_block=trgt_block, trgt_token=trgt_token["gen"])
+			cond_attns = _aggregate_attns(cond_prompt_attns, trgt_block=trgt_block, tokens=trgt_tokens["cond"])
+			gen_attns = _aggregate_attns(gen_prompt_attns, trgt_block=trgt_block, tokens=trgt_tokens["gen"])
 
 			total_diff = torch.zeros_like(cond_attns[0])
 			for c, g in zip(cond_attns, gen_attns):
@@ -135,7 +146,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			avg_diff = total_diff / len(cond_attns)
 			masks[trgt_block] = 1 - avg_diff
 
-			to_pil(masks[trgt_block].to(torch.float32)).save(f"{save_dir}/{trgt_block}-{trgt_token}.png")
+			to_pil(masks[trgt_block].to(torch.float32)).save(f"{save_dir}/{trgt_block}-{trgt_tokens}.png")
 
 		return masks
 
@@ -144,6 +155,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		self,
 		prompt: Union[str, List[str]] = None,
 		condition_prompt: Optional[str] = None,
+		diff_phrases: Optional[Dict[str, List[str]]] = None,
 		image: PipelineImageInput = None,
 		output_name: str = None,
 		height: Optional[int] = None,
@@ -538,7 +550,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 						timestep=t,
 						cond_prompt_attns=cond_prompt_attn,
 						gen_prompt_attns=gen_prompt_attn,
-						trgt_token={ "cond": "man", "gen": "dog"}
+						trgt_token=diff_phrases
 					)
 				############################################################################
 

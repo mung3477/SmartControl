@@ -26,6 +26,9 @@ def make_img_name(args: argparse.Namespace) -> str:
 def check_args(args: argparse.Namespace):
 	if args.alpha_attn_diff is True:
 		assert hasattr(args, "cond_prompt"), "You should provide condition prompt to use alpha masks inferred with cross attention differences."
+		assert hasattr(args, "cond_phrase"), "You should provide condition prompt phrase to use alpha masks inferred with cross attention differences."
+		for token in args.cond_phrase:
+			assert token in args.cond_prompt, f"{token} is not included in given condition prompt {args.cond_prompt}"
 
 
 def decide_cntl(args: argparse.Namespace):
@@ -49,7 +52,9 @@ def parse_args():
 	parser.add_argument('--detector_path', type=str, default="lllyasviel/Annotators", help="Path to fetch pretrained control detector")
 	parser.add_argument('--seed', type=int, default=12345, help="Seed")
 	parser.add_argument('--prompt', type=str, required=True)
+	parser.add_argument('--gen_phrase', nargs="*", type=str, required=True, help="Substring of given generation prompt to calculate cross attention differences")
 	parser.add_argument('--cond_prompt', type=str, help="Prompt to be cross-attentioned with condition image latent")
+	parser.add_argument('--cond_phrase', nargs="*", type=str, help="Substring of given condition prompt to calculate cross attention differences")
 	parser.add_argument('--ignore_special_tkns', action='store_true', default=True, help="Whether to ignore <sot> and <eot> while calculating cross attention differences")
 	parser.add_argument('--ref', type=str, help="A path to an image that will be used as a control", required=True)
 	parser.add_argument('--ip', type=str, default=None, help="A path to an image that will be used as an image prompt")
