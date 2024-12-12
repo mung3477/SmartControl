@@ -13,22 +13,36 @@ def make_img_name(args: argparse.Namespace) -> str:
 	ref_name = make_ref_name(args.ref)
 	cntl_type = args.cntl
 	controlnet_conditioning_scale = args.controlnet_conditioning_scale
-	alpha_map = "inferred" if args.alpha_mask is None else str(args.alpha_mask)
-	fixed = "fixed" if args.alpha_fixed is True else "multiplied"
 	seed = args.seed
 
+	if args.alpha_fixed:
+		alpha_map = str(args.alpha_mask)
+		alpha_calc = "fixed"
+	elif args.alpha_attn_diff:
+		alpha_map = "diff"
+		alpha_calc = f"{' '.join(args.gen_phrase)} vs {' '.join(args.cond_phrase)}"
+	else:
+		alpha_map = str(args.alpha_mask)
+		alpha_calc = "multiplied with smartcontrol"
+
+
 	if args.ip is None:
-		return f"smartcontrol-{prompt}-{cntl_type}-{ref_name}-control-{controlnet_conditioning_scale}-alpha-{alpha_map}-{fixed}-seed-{seed}"
+		return f"smartcontrol-{prompt}-{cntl_type}-{ref_name}-control-{controlnet_conditioning_scale}-alpha-{alpha_map}-{alpha_calc}-seed-{seed}"
 	else:
 		ip_name = make_ref_name(args.ip)
-		return f"IP-smartcontrol-{prompt}-{cntl_type}-{ref_name}-IP-{ip_name}-control-{controlnet_conditioning_scale}-alpha-{alpha_map}-{fixed}-seed-{seed}"
+		return f"IP-smartcontrol-{prompt}-{cntl_type}-{ref_name}-IP-{ip_name}-control-{controlnet_conditioning_scale}-alpha-{alpha_map}-{alpha_calc}-seed-{seed}"
 
 def check_args(args: argparse.Namespace):
 	if args.alpha_attn_diff is True:
 		assert hasattr(args, "cond_prompt"), "You should provide condition prompt to use alpha masks inferred with cross attention differences."
 		assert hasattr(args, "cond_phrase"), "You should provide condition prompt phrase to use alpha masks inferred with cross attention differences."
+
+		for token in args.gen_phrase:
+			assert token in args.prompt, f"{token} is not included in given generation prompt {args.prompt}"
 		for token in args.cond_phrase:
 			assert token in args.cond_prompt, f"{token} is not included in given condition prompt {args.cond_prompt}"
+		args.gen_phrase = args.gen_phrase.split()
+		args.cond_phrase = args.cond_phrase.split()
 
 
 def decide_cntl(args: argparse.Namespace):
@@ -52,9 +66,9 @@ def parse_args():
 	parser.add_argument('--detector_path', type=str, default="lllyasviel/Annotators", help="Path to fetch pretrained control detector")
 	parser.add_argument('--seed', type=int, default=12345, help="Seed")
 	parser.add_argument('--prompt', type=str, required=True)
-	parser.add_argument('--gen_phrase', nargs="*", type=str, required=True, help="Substring of given generation prompt to calculate cross attention differences")
+	parser.add_argument('--gen_phrase', type=str, required=True, help="Substring of given generation prompt to calculate cross attention differences")
 	parser.add_argument('--cond_prompt', type=str, help="Prompt to be cross-attentioned with condition image latent")
-	parser.add_argument('--cond_phrase', nargs="*", type=str, help="Substring of given condition prompt to calculate cross attention differences")
+	parser.add_argument('--cond_phrase', type=str, help="Substring of given condition prompt to calculate cross attention differences")
 	parser.add_argument('--ignore_special_tkns', action='store_true', default=True, help="Whether to ignore <sot> and <eot> while calculating cross attention differences")
 	parser.add_argument('--ref', type=str, help="A path to an image that will be used as a control", required=True)
 	parser.add_argument('--ip', type=str, default=None, help="A path to an image that will be used as an image prompt")

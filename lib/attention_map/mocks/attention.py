@@ -172,7 +172,6 @@ def attn_call2_0(
 	# TODO: add support for attn.scale when we move to Torch 2.1
 	####################################################################################################
 	if hasattr(self, "store_attn_map"):
-		import pudb; pudb.set_trace()
 		hidden_states, attention_probs = scaled_dot_product_attention(
 			query, key, value, attn_mask=attention_mask, dropout_p=0.0, is_causal=False
 		)

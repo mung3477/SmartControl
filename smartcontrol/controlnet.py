@@ -126,20 +126,23 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 
 		def _aggregate_attns(attns: dict, trgt_block: str, tokens: List[str]):
 			aggregated = None
+
 			for token in tokens:
-				attn = _filter_attns(attns=attns, trgt_block=trgt_block, trgt_token=token)
+				attn = _filter_attns(attns=attns, trgt_block=trgt_block, trgt_token=f"<{token}>")
+				block_avg_attn = np.array(attn).sum(axis=0) / len(attn)
 				if aggregated is None:
-					aggregated = np.array(attn)
+					aggregated = block_avg_attn
 				else:
-					aggregated += np.array(attn)
+					aggregated += block_avg_attn
+
 			aggregated /= len(tokens)
-			return aggregated
+			return torch.from_numpy(aggregated)
 
 		for trgt_block in COND_BLOCKS:
 			cond_attns = _aggregate_attns(cond_prompt_attns, trgt_block=trgt_block, tokens=trgt_tokens["cond"])
 			gen_attns = _aggregate_attns(gen_prompt_attns, trgt_block=trgt_block, tokens=trgt_tokens["gen"])
 
-			total_diff = torch.zeros_like(cond_attns[0])
+			total_diff = torch.zeros_like(cond_attns)
 			for c, g in zip(cond_attns, gen_attns):
 				total_diff += c - g
 
@@ -523,7 +526,8 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					output_name=output_name,
 					attn_options={
 						"prefix": "",
-						"return_dict": True
+						"return_dict": True,
+						"ignore_special_tkns": self.ignore_special_tkns
 					}
 				)
 				inferred_masks = None
@@ -541,7 +545,8 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 						output_name=output_name,
 						attn_options={
 							"prefix": "sub-",
-							"return_dict": True
+							"return_dict": True,
+							"ignore_special_tkns": self.ignore_special_tkns
 						}
 					)
 
@@ -550,7 +555,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 						timestep=t,
 						cond_prompt_attns=cond_prompt_attn,
 						gen_prompt_attns=gen_prompt_attn,
-						trgt_token=diff_phrases
+						trgt_tokens=diff_phrases
 					)
 				############################################################################
 

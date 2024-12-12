@@ -11,10 +11,12 @@ from ..utils import assert_path
 class AttnSaveOptions(TypedDict):
 	prefix: str = ""
 	return_dict: bool = False
+	ignore_special_tkns: bool = True
 
 default_option: AttnSaveOptions = {
 	'prefix': "",
-	'return_dict': False
+	'return_dict': False,
+	'ignore_special_tkns': True
 }
 
 def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps', unconditional=True, options: AttnSaveOptions = default_option):

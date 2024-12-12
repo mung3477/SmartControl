@@ -65,7 +65,16 @@ def main():
     image.save(f"output/vanilla/{image_name}.png")
     print(f"Saved at ./output/vanilla/{image_name}.png!")
 
-    save_attention_maps(pipe.unet.attn_maps, pipe.tokenizer, base_dir=f"log/attn_maps/{image_name}", prompts=[prompt])
+    save_attention_maps(
+        pipe.unet.attn_maps,
+        pipe.tokenizer,
+        base_dir=f"log/attn_maps/{image_name}",
+        prompts=[prompt],
+        options={
+            "prefix": "",
+            "return_dict": False,
+            "ignore_special_tkns": args.ignore_special_tkns
+        })
     save_alpha_masks(pipe.unet.alpha_masks, f'log/alpha_masks/{image_name}')
 
 if __name__ == "__main__":

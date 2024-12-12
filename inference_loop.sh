@@ -23,11 +23,16 @@ END
 alphas=(1.0)
 for alpha in "${alphas[@]}"
 do
-	CUDA_VISIBLE_DEVICES="5" python3 smartcontrol_demo.py \
-		--prompt="spiderman running" \
-		--ref="mickey.png" \
+	CUDA_VISIBLE_DEVICES="3" python3 smartcontrol_demo.py \
+		--prompt="a photo of tiger" \
+		--gen_phrase="a photo of tiger" \
+		--ref="deer.png" \
+		--cond_prompt="a photo of deer" \
+		--cond_phrase="a photo of deer" \
 		--cntl="depth" \
-		--seed=42 \
+		--seed=12345 \
 		--alpha_mask=$alpha \
+		--alpha_attn_diff
+
 
 done
