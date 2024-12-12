@@ -139,15 +139,13 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			return torch.from_numpy(aggregated)
 
 		for trgt_block in COND_BLOCKS:
-			cond_attns = _aggregate_attns(cond_prompt_attns, trgt_block=trgt_block, tokens=trgt_tokens["cond"])
-			gen_attns = _aggregate_attns(gen_prompt_attns, trgt_block=trgt_block, tokens=trgt_tokens["gen"])
+			cond_attn = _aggregate_attns(cond_prompt_attns, trgt_block=trgt_block, tokens=trgt_tokens["cond"])
+			gen_attn = _aggregate_attns(gen_prompt_attns, trgt_block=trgt_block, tokens=trgt_tokens["gen"])
 
-			total_diff = torch.zeros_like(cond_attns)
-			for c, g in zip(cond_attns, gen_attns):
-				total_diff += c - g
+			avg_diff = cond_attn - gen_attn
 
-			avg_diff = total_diff / len(cond_attns)
-			masks[trgt_block] = 1 - avg_diff
+			masks[trgt_block] = gen_attn
+			masks[trgt_block][avg_diff > 0] = 0
 
 			to_pil(masks[trgt_block].to(torch.float32)).save(f"{save_dir}/{trgt_block}-{trgt_tokens}.png")
 
