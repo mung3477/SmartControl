@@ -32,6 +32,7 @@ def register_cross_attention_hook(model, target_name):
 	for name, module in model.named_modules():
 		if not name.endswith(target_name):
 			continue
+
 		# create a new flag instance variable to indicate that attention map should be stored
 		# if isinstance(module.processor, AttnProcessor):
 		#	module.processor.store_attn_map = True # type: ignore
@@ -68,6 +69,11 @@ def replace_call_method_for_unet(model):
 	return model
 
 def init_cross_attn():
+	"""
+		torch version < 2 uses AttnProcessor.
+		smartcontrol uses torch==1.13.1
+		https://github.com/huggingface/diffusers/blob/7db9463e528146b9438ce415b51f5fad08e7dc7e/src/diffusers/models/attention_processor.py#L281
+	"""
 	# AttnProcessor.__call__ = attn_call
 	AttnProcessor2_0.__call__ = attn_call2_0
 

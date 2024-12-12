@@ -7,24 +7,24 @@ import torch.nn.functional as F
 from diffusers import StableDiffusionControlNetPipeline
 from diffusers.image_processor import PipelineImageInput
 from diffusers.models import (AutoencoderKL, ControlNetModel, ImageProjection,
-                              UNet2DConditionModel)
+							  UNet2DConditionModel)
 from diffusers.pipelines.controlnet.multicontrolnet import MultiControlNetModel
 from diffusers.pipelines.controlnet.pipeline_controlnet import \
-    retrieve_timesteps
+	retrieve_timesteps
 from diffusers.pipelines.stable_diffusion.pipeline_output import \
-    StableDiffusionPipelineOutput
+	StableDiffusionPipelineOutput
 from diffusers.pipelines.stable_diffusion.safety_checker import \
-    StableDiffusionSafetyChecker
+	StableDiffusionSafetyChecker
 from diffusers.schedulers.scheduling_utils import KarrasDiffusionSchedulers
 from diffusers.utils import logging
 from diffusers.utils.torch_utils import is_compiled_module, is_torch_version
 from PIL import Image, ImageChops
 from torchvision.transforms import ToPILImage
 from transformers import (CLIPImageProcessor, CLIPTextModel, CLIPTokenizer,
-                          CLIPVisionModelWithProjection)
+						  CLIPVisionModelWithProjection)
 
 from lib import (COND_BLOCKS, AttnSaveOptions, assert_path, default_option,
-                 save_attention_maps)
+				 save_attention_maps)
 
 from .types import AttnDiffTrgtTokens
 
@@ -59,23 +59,30 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 
 	def control_branch_forward(
 		self,
-        sample: torch.FloatTensor,
-        timestep: Union[torch.Tensor, float, int],
-        encoder_hidden_states: torch.Tensor,
-        controlnet_cond: torch.FloatTensor,
-        conditioning_scale: float = 1.0,
-        guess_mode: bool = False,
-        return_dict: bool = True,
-        prompt: str = None,
-        output_name: str = None,
-        attn_options: AttnSaveOptions = default_option,
-    ):
+		sample: torch.FloatTensor,
+		timestep: Union[torch.Tensor, float, int],
+		encoder_hidden_states: torch.Tensor,
+		controlnet_cond: torch.FloatTensor,
+		conditioning_scale: float = 1.0,
+		guess_mode: bool = False,
+		cross_attention_kwargs: Optional[Dict[str, Any]] = None,
+		return_dict: bool = True,
+		prompt: str = None,
+		output_name: str = None,
+		attn_options: AttnSaveOptions = default_option,
+	):
+		if cross_attention_kwargs is None:
+			cross_attention_kwargs = {'timestep' : timestep}
+		else:
+			cross_attention_kwargs['timestep'] = timestep
+
 		down_block_res_samples, mid_block_res_sample = self.controlnet(
 			sample,
 			timestep,
 			encoder_hidden_states=encoder_hidden_states,
 			controlnet_cond=controlnet_cond,
 			conditioning_scale=conditioning_scale,
+			cross_attention_kwargs=cross_attention_kwargs,
 			guess_mode=guess_mode,
 			return_dict=return_dict,
 		)
@@ -492,6 +499,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					controlnet_cond=image,
 					conditioning_scale=cond_scale,
 					guess_mode=guess_mode,
+					cross_attention_kwargs=self.cross_attention_kwargs,
 					return_dict=False,
 					output_name=output_name,
 					attn_options={

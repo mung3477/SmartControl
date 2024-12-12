@@ -29,7 +29,7 @@ def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps',
 
 	assert_path(base_dir)
 
-	total_attn_map = list(list(attn_maps.values())[0].values())[0].sum(1)
+	total_attn_map = list(list(attn_maps.values())[0].values())[0].sum(1) # If we use AttnProcessor2.0, batch attn_head h w attn_dim -> batch h w attn_dim
 	if unconditional:
 		total_attn_map = total_attn_map.chunk(2)[1]  # (batch, height, width, attn_dim)
 	total_attn_map = total_attn_map.permute(0, 3, 1, 2)
