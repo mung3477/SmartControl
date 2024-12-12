@@ -307,11 +307,14 @@ def ca_forward(self, mask_options: AlphaOptions):
                 },
                 inferred_masks=inferred_masks
             )
+            if paired_resblock_mask is not None:
+                paired_resblock_mask = paired_resblock_mask.to(self.device)
+
             c = choose_alpha_mask(
                 masks={
                     "user_given": alpha_mask,
                     "smartcntl_inferred": c,
-                    "attn_diff_inferred": paired_resblock_mask.to(self.device)
+                    "attn_diff_inferred": paired_resblock_mask
                 },
                 use_fixed_mask=given_mask_options["fixed"]
             )
@@ -333,6 +336,16 @@ def ca_forward(self, mask_options: AlphaOptions):
                 upsample_size = down_block_res_samples[-1].shape[2:]
 
             if hasattr(upsample_block, "has_cross_attention") and upsample_block.has_cross_attention:
+                paired_resblock_mask = get_paired_resblock_mask(
+                    block_info={
+                        "name": upsample_block.__class__.__name__,
+                        "idx": i
+                    },
+                    inferred_masks=inferred_masks
+                )
+                if paired_resblock_mask is not None:
+                    paired_resblock_mask = paired_resblock_mask.to(self.device)
+
                 sample = upsample_block(
                     hidden_states=sample,
                     temb=emb,
@@ -344,12 +357,7 @@ def ca_forward(self, mask_options: AlphaOptions):
                     encoder_attention_mask=encoder_attention_mask,
                     c_predictor= self.c_pre_list[(3*i+1) :(3*i+4)],
                     timestep=timestep,
-                    paired_resblock_mask=get_paired_resblock_mask(
-                        block_info={
-                            "name": upsample_block.__class__.__name__,
-                            "idx": i
-                        }
-                    ),
+                    paired_resblock_mask=paired_resblock_mask,
                     given_mask_options=given_mask_options
                 )
             else:
