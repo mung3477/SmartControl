@@ -28,7 +28,7 @@ def main():
     controlnet = ControlNetModel.from_pretrained(args.controlnet_path, torch_dtype=torch.float16)
     vae = AutoencoderKL.from_pretrained(vae_model_path).to(dtype=torch.float16)
     pipe = SmartControlPipeline.from_pretrained(
-        base_model_path, controlnet=controlnet, vae=vae, torch_dtype=torch.float16
+        base_model_path, controlnet=controlnet, vae=vae, torch_dtype=torch.float16, ignore_special_tkns=args.ignore_special_tkns
     )
     pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
     pipe.enable_model_cpu_offload()

@@ -87,6 +87,7 @@ def attn_call(
 		attention_probs = attn.get_attention_scores(query, key, attention_mask)
 		####################################################################################################
 		# attention score should be saved as an image
+		# (batch * num_heads, seq_len, head_dim)
 		if hasattr(self, "store_attn_map"):
 			self.attn_map = rearrange(attention_probs, 'b (h w) d -> b d h w', h=height)
 			self.timestep = int(timestep.item())
@@ -171,10 +172,19 @@ def attn_call2_0(
 	# TODO: add support for attn.scale when we move to Torch 2.1
 	####################################################################################################
 	if hasattr(self, "store_attn_map"):
+		import pudb; pudb.set_trace()
 		hidden_states, attention_probs = scaled_dot_product_attention(
 			query, key, value, attn_mask=attention_mask, dropout_p=0.0, is_causal=False
 		)
-		self.attn_map = rearrange(attention_probs, 'batch attn_head (h w) attn_dim -> batch attn_head h w attn_dim ', h=height) # detach height*width
+
+		if hasattr(kwargs, "last_token_idx"):
+			""" re-weight the attention values by ignoring the attention of ⟨𝑠𝑜𝑡⟩ and <eot> """
+			attention_probs = attention_probs[:, :, :, 1:kwargs["last_idx"]]
+			attention_probs *= 100
+			attention_probs = torch.nn.functional.softmax(attention_probs, dim=-1)
+
+		attention_probs = rearrange(attention_probs, 'batch attn_head (h w) attn_dim -> batch attn_head h w attn_dim ', h=height) # detach height*width
+		self.attn_map = attention_probs
 		self.timestep = int(timestep.item())
 	else:
 		hidden_states = F.scaled_dot_product_attention(

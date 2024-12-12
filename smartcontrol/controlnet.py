@@ -43,6 +43,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		feature_extractor: CLIPImageProcessor,
 		image_encoder: CLIPVisionModelWithProjection = None,
 		requires_safety_checker: bool = True,
+		ignore_special_tkns: bool = True,
 	):
 		super().__init__(
 			vae=vae,
@@ -56,6 +57,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			image_encoder=image_encoder,
 			requires_safety_checker=requires_safety_checker
 		)
+		self.ignore_special_tkns = ignore_special_tkns
 
 	def control_branch_forward(
 		self,
@@ -71,10 +73,15 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		output_name: str = None,
 		attn_options: AttnSaveOptions = default_option,
 	):
+		last_idx = len(self.tokenizer(prompt)['input_ids']) - 1
+
 		if cross_attention_kwargs is None:
 			cross_attention_kwargs = {'timestep' : timestep}
 		else:
 			cross_attention_kwargs['timestep'] = timestep
+
+		if self.ignore_special_tkns:
+			cross_attention_kwargs['token_last_idx'] = last_idx
 
 		down_block_res_samples, mid_block_res_sample = self.controlnet(
 			sample,
