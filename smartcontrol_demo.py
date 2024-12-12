@@ -6,7 +6,7 @@ from PIL import Image
 from pytorch_lightning import seed_everything
 
 from lib import (image_grid, init_store_attn_map, make_img_name, make_ref_name,
-                 parse_args, save_alpha_masks, save_attention_maps)
+                 parse_args, save_alpha_masks, save_attention_maps, assert_path)
 from smartcontrol import SmartControlPipeline, register_unet
 
 image_dir = "./assets/images"
@@ -57,6 +57,7 @@ def main():
 
 
     image = image_grid([image.resize((256, 256)), control.resize((256, 256)),output.resize((256,256))], 1, 3, caption=image_name, options={"fill": (255, 255, 255)})
+    assert_path("output/vanilla/")
     image.save(f"output/vanilla/{image_name}.png")
     print(f"Saved at ./output/vanilla/{image_name}.png!")
 
