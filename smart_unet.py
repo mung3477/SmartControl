@@ -435,8 +435,15 @@ def upblock2d_forward(self):
                 shape=c.shape[-2:],
                 device=res_hidden_states.device
             )
-            c = alpha_mask * c if not given_mask_options["fixed"] \
-                else alpha_mask.unsqueeze(0).unsqueeze(0).repeat(2, 1, 1, 1)
+            c = choose_alpha_mask(
+                masks={
+                    "user_given": alpha_mask,
+                    "smartcntl_inferred": c,
+                    "attn_diff_inferred": torch.ones_like(alpha_mask) * 0
+                },
+                use_fixed_mask=given_mask_options["fixed"]
+            )
+
             res_hidden_states  = res_hidden_states[:,:c_half] + c * res_hidden_states[:,c_half:]
             count = count+1
 
