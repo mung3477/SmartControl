@@ -80,7 +80,7 @@ def parse_args():
 	parser.add_argument('--detector_path', type=str, default="lllyasviel/Annotators", help="Path to fetch pretrained control detector")
 	parser.add_argument('--seed', type=int, default=12345, help="Seed")
 	parser.add_argument('--prompt', type=str, required=True)
-	parser.add_argument('--gen_phrase', type=str, required=True, help="Substring of given generation prompt to calculate cross attention differences")
+	parser.add_argument('--gen_phrase', type=str, help="Substring of given generation prompt to calculate cross attention differences")
 	parser.add_argument('--cond_prompt', type=str, help="Prompt to be cross-attentioned with condition image latent")
 	parser.add_argument('--cond_phrase', type=str, help="Substring of given condition prompt to calculate cross attention differences")
 	parser.add_argument('--ignore_special_tkns', action='store_true', default=False, help="Whether to ignore <sot> and <eot> while calculating cross attention differences")
