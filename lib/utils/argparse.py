@@ -1,4 +1,5 @@
 import argparse
+import warnings
 
 from controlnet_aux import CannyDetector, ZoeDetector
 from PIL import Image
@@ -43,6 +44,17 @@ def check_args(args: argparse.Namespace):
 			assert token in args.prompt, f"{token} is not included in given generation prompt {args.prompt}"
 		for token in args.cond_phrase:
 			assert token in args.cond_prompt, f"{token} is not included in given condition prompt {args.cond_prompt}"
+
+		if args.ignore_special_tkns:
+			if args.gen_phrase == args.prompt:
+				warnings.warn("You are ignoring <sot> and <eot>, but the given prompt and gen phrase are same. This will make the cross attention value of the phrase to 0.25\n")
+
+			if args.cond_phrase == args.cond_prompt:
+				warnings.warn("You are ignoring <sot> and <eot>, but the given cond prompt and cond phrase are same. This will make the cross attention value of the phrase to 0.25\n")
+
+			if args.gen_phrase == args.prompt and args.cond_phrase == args.cond_prompt:
+				warnings.warn("You are ignoring <sot> and <eot>, but you are using both prompts to calculate cross attention difference. This will make the difference almost ZERO\n")
+
 		args.gen_phrase = args.gen_phrase.split()
 		args.cond_phrase = args.cond_phrase.split()
 
