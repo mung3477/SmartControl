@@ -24,7 +24,7 @@ from transformers import (CLIPImageProcessor, CLIPTextModel, CLIPTokenizer,
 						  CLIPVisionModelWithProjection)
 
 from lib import (COND_BLOCKS, AttnSaveOptions, assert_path, default_option,
-				 save_attention_maps)
+				 save_attention_maps, tokenize_and_mark_prompts)
 
 from .types import AttnDiffTrgtTokens
 
@@ -113,6 +113,17 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 
 		assert_path(save_dir)
 
+		cond_tokens = tokenize_and_mark_prompts(
+			prompts=[trgt_tokens["cond"]],
+			tokenizer=self.tokenizer,
+			ignore_special_tokens=self.ignore_special_tkns
+		)[0]
+		gen_tokens = tokenize_and_mark_prompts(
+			prompts=[trgt_tokens["gen"]],
+			tokenizer=self.tokenizer,
+			ignore_special_tokens=self.ignore_special_tkns
+		)[0]
+
 		def _filter_dict_with_key(d: dict, substr: str):
 			return list(dict(filter(
 				lambda item: substr in item[0],
@@ -128,7 +139,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			aggregated = None
 
 			for token in tokens:
-				attn = _filter_attns(attns=attns, trgt_block=trgt_block, trgt_token=f"<{token}>")
+				attn = _filter_attns(attns=attns, trgt_block=trgt_block, trgt_token=token)
 				block_avg_attn = np.array(attn).sum(axis=0) / len(attn)
 				if aggregated is None:
 					aggregated = block_avg_attn
@@ -139,8 +150,8 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			return torch.from_numpy(aggregated)
 
 		for trgt_block in COND_BLOCKS:
-			cond_attn = _aggregate_attns(cond_prompt_attns, trgt_block=trgt_block, tokens=trgt_tokens["cond"])
-			gen_attn = _aggregate_attns(gen_prompt_attns, trgt_block=trgt_block, tokens=trgt_tokens["gen"])
+			cond_attn = _aggregate_attns(cond_prompt_attns, trgt_block=trgt_block, tokens=cond_tokens)
+			gen_attn = _aggregate_attns(gen_prompt_attns, trgt_block=trgt_block, tokens=gen_tokens)
 
 			avg_diff = cond_attn - gen_attn
 

@@ -21,7 +21,7 @@ def make_img_name(args: argparse.Namespace) -> str:
 		alpha_calc = "fixed"
 	elif args.alpha_attn_diff:
 		alpha_map = "diff"
-		alpha_calc = f"{' '.join(args.gen_phrase)} vs {' '.join(args.cond_phrase)}"
+		alpha_calc = f"{args.gen_phrase} vs {args.cond_phrase}"
 		if args.ignore_special_tkns:
 			alpha_calc += "-no <sot> <eot>"
 	else:
@@ -40,9 +40,9 @@ def check_args(args: argparse.Namespace):
 		assert hasattr(args, "cond_prompt"), "You should provide condition prompt to use alpha masks inferred with cross attention differences."
 		assert hasattr(args, "cond_phrase"), "You should provide condition prompt phrase to use alpha masks inferred with cross attention differences."
 
-		for token in args.gen_phrase:
+		for token in args.gen_phrase.split():
 			assert token in args.prompt, f"{token} is not included in given generation prompt {args.prompt}"
-		for token in args.cond_phrase:
+		for token in args.cond_phrase.split():
 			assert token in args.cond_prompt, f"{token} is not included in given condition prompt {args.cond_prompt}"
 
 		if args.ignore_special_tkns:
@@ -54,9 +54,6 @@ def check_args(args: argparse.Namespace):
 
 			if args.gen_phrase == args.prompt and args.cond_phrase == args.cond_prompt:
 				warnings.warn("You are ignoring <sot> and <eot>, but you are using both prompts to calculate cross attention difference. This will make the difference almost ZERO\n")
-
-		args.gen_phrase = args.gen_phrase.split()
-		args.cond_phrase = args.cond_phrase.split()
 
 
 def decide_cntl(args: argparse.Namespace):
