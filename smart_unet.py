@@ -439,7 +439,7 @@ def upblock2d_forward(self):
                 masks={
                     "user_given": alpha_mask,
                     "smartcntl_inferred": c,
-                    "attn_diff_inferred": torch.ones_like(alpha_mask) * 0
+                    "attn_diff_inferred": torch.ones_like(alpha_mask) * 0.75
                 },
                 use_fixed_mask=given_mask_options["fixed"]
             )
