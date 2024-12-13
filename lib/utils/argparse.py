@@ -21,6 +21,8 @@ def make_img_name(args: argparse.Namespace) -> str:
 	elif args.alpha_attn_diff:
 		alpha_map = "diff"
 		alpha_calc = f"{' '.join(args.gen_phrase)} vs {' '.join(args.cond_phrase)}"
+		if args.ignore_special_tkns:
+			alpha_calc += "-no <sot> <eot>"
 	else:
 		alpha_map = str(args.alpha_mask)
 		alpha_calc = "multiplied with smartcontrol"
@@ -69,7 +71,7 @@ def parse_args():
 	parser.add_argument('--gen_phrase', type=str, required=True, help="Substring of given generation prompt to calculate cross attention differences")
 	parser.add_argument('--cond_prompt', type=str, help="Prompt to be cross-attentioned with condition image latent")
 	parser.add_argument('--cond_phrase', type=str, help="Substring of given condition prompt to calculate cross attention differences")
-	parser.add_argument('--ignore_special_tkns', action='store_true', default=True, help="Whether to ignore <sot> and <eot> while calculating cross attention differences")
+	parser.add_argument('--ignore_special_tkns', action='store_true', default=False, help="Whether to ignore <sot> and <eot> while calculating cross attention differences")
 	parser.add_argument('--ref', type=str, help="A path to an image that will be used as a control", required=True)
 	parser.add_argument('--ip', type=str, default=None, help="A path to an image that will be used as an image prompt")
 
