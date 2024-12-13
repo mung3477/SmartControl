@@ -176,10 +176,10 @@ def attn_call2_0(
 			query, key, value, attn_mask=attention_mask, dropout_p=0.0, is_causal=False
 		)
 
-		if hasattr(kwargs, "last_token_idx"):
+		if "token_last_idx" in kwargs:
 			""" re-weight the attention values by ignoring the attention of ⟨𝑠𝑜𝑡⟩ and <eot> """
-			attention_probs = attention_probs[:, :, :, 1:kwargs["last_idx"]]
-			attention_probs *= 100
+			attention_probs = attention_probs[:, :, :, 1:kwargs["token_last_idx"]]
+			attention_probs *= 1000
 			attention_probs = torch.nn.functional.softmax(attention_probs, dim=-1)
 
 		attention_probs = rearrange(attention_probs, 'batch attn_head (h w) attn_dim -> batch attn_head h w attn_dim ', h=height) # detach height*width

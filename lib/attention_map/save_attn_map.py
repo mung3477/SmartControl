@@ -50,7 +50,7 @@ def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps',
 			layer_dir = os.path.join(timestep_dir, f'{layer}')
 			assert_path(layer_dir)
 
-			attn_map = attn_map.sum(1).squeeze(1)
+			attn_map = attn_map.sum(1) / attn_map.shape[1]
 			attn_map = attn_map.permute(0, 3, 1, 2)
 
 			if unconditional:
