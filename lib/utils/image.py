@@ -22,16 +22,11 @@ def image_grid(imgs, rows, cols, caption, options: TextDraw_Options = { "fill" :
     I1.text((10, 10), caption, fill=options['fill'])
     return grid
 
-def calc_diff(img1_path: str, img2_path: str, name: str):
-    assert os.path.exists(img1_path), f"{img1_path} not exists"
-    assert os.path.exists(img2_path), f"{img2_path} not exists"
-
-    img1 = Image.open(img1_path)
-    img2 = Image.open(img2_path)
-
-    assert img1.size == img2.size, f"{img1_path}: {img1.size} does not match with {img2_path}: {img2.size}"
+def calc_diff(img1: Image.Image , img2: Image.Image, name: str):
+    assert img1.size == img2.size, f"{img1.size} does not match with {img2.size}"
 
     diff = ImageChops.subtract(img1, img2)
+
     grid = image_grid(
         [
                 img1.resize((256, 256), resample=Image.NEAREST),
@@ -40,7 +35,7 @@ def calc_diff(img1_path: str, img2_path: str, name: str):
         ],
         rows=1,
         cols=3,
-        caption=f"diff btw {img1_path} and {img2_path}",
+        caption=name,
         options={ "fill": (255, 255, 255) }
     )
     grid.save(f"{name}.png")

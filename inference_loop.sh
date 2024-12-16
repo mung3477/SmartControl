@@ -40,6 +40,8 @@ cond_phrases=("Enamel boots")
 
 for index in "${!subjects[@]}"
 do
+
+	# my control
 	CUDA_VISIBLE_DEVICES="0" python3 smartcontrol_demo.py \
 		--prompt="${subjects[$index]}" \
 		--gen_phrase="${subj_phrases[$index]}" \
@@ -52,5 +54,14 @@ do
 		--alpha_attn_diff \
 		--ignore_special_tkns
 
+: << 'END'
+	# SmartControl
+	CUDA_VISIBLE_DEVICES="0" python3 smartcontrol_demo.py \
+		--prompt="${subjects[$index]}" \
+		--ref="${ref[$index]}" \
+		--cntl="${cntl[$index]}" \
+		--seed=12345 \
+		--alpha_mask=1
+END
 
 done

@@ -7,24 +7,24 @@ import torch.nn.functional as F
 from diffusers import StableDiffusionControlNetPipeline
 from diffusers.image_processor import PipelineImageInput
 from diffusers.models import (AutoencoderKL, ControlNetModel, ImageProjection,
-							  UNet2DConditionModel)
+                              UNet2DConditionModel)
 from diffusers.pipelines.controlnet.multicontrolnet import MultiControlNetModel
 from diffusers.pipelines.controlnet.pipeline_controlnet import \
-	retrieve_timesteps
+    retrieve_timesteps
 from diffusers.pipelines.stable_diffusion.pipeline_output import \
-	StableDiffusionPipelineOutput
+    StableDiffusionPipelineOutput
 from diffusers.pipelines.stable_diffusion.safety_checker import \
-	StableDiffusionSafetyChecker
+    StableDiffusionSafetyChecker
 from diffusers.schedulers.scheduling_utils import KarrasDiffusionSchedulers
 from diffusers.utils import logging
 from diffusers.utils.torch_utils import is_compiled_module, is_torch_version
 from PIL import Image, ImageChops
 from torchvision.transforms import ToPILImage
 from transformers import (CLIPImageProcessor, CLIPTextModel, CLIPTokenizer,
-						  CLIPVisionModelWithProjection)
+                          CLIPVisionModelWithProjection)
 
 from lib import (COND_BLOCKS, AttnSaveOptions, assert_path, default_option,
-				 save_attention_maps, tokenize_and_mark_prompts)
+                 save_attention_maps, tokenize_and_mark_prompts)
 
 from .types import AttnDiffTrgtTokens
 
@@ -137,7 +137,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 
 		def _aggregate_attns(attns: dict, trgt_block: str, tokens: List[str]):
 			aggregated = None
-
+			import pudb; pudb.set_trace()
 			for token in tokens:
 				attn = _filter_attns(attns=attns, trgt_block=trgt_block, trgt_token=token)
 				block_avg_attn = np.array(attn).sum(axis=0) / len(attn)
