@@ -22,16 +22,25 @@ END
 # alphas=(0.0 0.2 0.4 0.6 0.8 1.0)
 # for alpha in "${alphas[@]}"
 
-subjects=("girl with a purse in anime style" "A man with short hair" "High-heeled shoe encrusted with diamonds")
-subj_phrases=("girl purse anime" "man short hair" "High-heeled shoe encrusted")
-ref=("hulk.png" "long hair woman.png" "shoes.png")
-cntl=("depth" "canny" "canny")
-cond_prompts=("a photo of hulk" "A woman with long hair" "Enamel ankle boots with a strap")
-cond_phrases=("photo hulk" "woman long hair" "ankle boots strap")
+# subjects=("girl with a purse in anime style" "A man with short hair" "High-heeled shoe encrusted with diamonds")
+# subj_phrases=("girl purse anime" "man short hair" "High-heeled shoe encrusted")
+# ref=("hulk.png" "long hair woman.png" "shoes.png")
+# cntl=("depth" "canny" "canny")
+# cond_prompts=("a photo of hulk" "A woman with long hair" "Enamel ankle boots with a strap")
+# cond_phrases=("photo hulk" "woman long hair" "ankle boots strap")
+
+
+subjects=("High-heeled shoe encrusted with diamonds")
+subj_phrases=("High-heeled shoe diamonds")
+
+ref=("shoes.png")
+cntl=("canny")
+cond_prompts=("Enamel ankle boots with a strap")
+cond_phrases=("Enamel boots")
 
 for index in "${!subjects[@]}"
 do
-	CUDA_VISIBLE_DEVICES="3" python3 smartcontrol_demo.py \
+	CUDA_VISIBLE_DEVICES="0" python3 smartcontrol_demo.py \
 		--prompt="${subjects[$index]}" \
 		--gen_phrase="${subj_phrases[$index]}" \
 		--ref="${ref[$index]}" \
