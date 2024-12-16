@@ -1,7 +1,8 @@
 **/*.jpg
 **/__pycache__/*
 *.ckpt
-**/*.png
+output/**/*.png
+log/**/*.png
 **/*.bin
 **/*.safetensors
 *.zip
