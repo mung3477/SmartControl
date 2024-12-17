@@ -44,6 +44,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		image_encoder: CLIPVisionModelWithProjection = None,
 		requires_safety_checker: bool = True,
 		ignore_special_tkns: bool = True,
+		diff_threshold: float = 0.0
 	):
 		super().__init__(
 			vae=vae,
@@ -58,6 +59,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			requires_safety_checker=requires_safety_checker
 		)
 		self.ignore_special_tkns = ignore_special_tkns
+		self.diff_threshold = diff_threshold
 
 	def control_branch_forward(
 		self,
@@ -137,7 +139,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 
 		def _aggregate_attns(attns: dict, trgt_block: str, tokens: List[str]):
 			aggregated = None
-			import pudb; pudb.set_trace()
+
 			for token in tokens:
 				attn = _filter_attns(attns=attns, trgt_block=trgt_block, trgt_token=token)
 				block_avg_attn = np.array(attn).sum(axis=0) / len(attn)
@@ -155,8 +157,9 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 
 			avg_diff = cond_attn - gen_attn
 
-			masks[trgt_block] = gen_attn
-			masks[trgt_block][avg_diff > 0] = 0
+			masks[trgt_block] = 1 - avg_diff
+			# masks[trgt_block] = gen_attn
+			# masks[trgt_block][avg_diff > self.diff_threshold] = 0
 
 			to_pil(masks[trgt_block].to(torch.float32)).save(f"{save_dir}/{trgt_block}-{trgt_tokens}.png")
 

@@ -24,6 +24,7 @@ def make_img_name(args: argparse.Namespace) -> str:
 		alpha_calc = f"{args.gen_phrase} vs {args.cond_phrase}"
 		if args.ignore_special_tkns:
 			alpha_calc += "-no <sot> <eot>"
+		alpha_calc += f"-threshold {args.attn_diff_threshold}"
 	else:
 		alpha_map = str(args.alpha_mask)
 		alpha_calc = "multiplied with smartcontrol"
@@ -38,7 +39,15 @@ def make_img_name(args: argparse.Namespace) -> str:
 def check_args(args: argparse.Namespace):
 	if args.alpha_attn_diff is True:
 		assert hasattr(args, "cond_prompt"), "You should provide condition prompt to use alpha masks inferred with cross attention differences."
-		assert hasattr(args, "cond_phrase"), "You should provide condition prompt phrase to use alpha masks inferred with cross attention differences."
+
+		if args.gen_phrase is None:
+			warnings.warn("\nYou should provide generation prompt phrase to use alpha masks inferred with cross attention differences. Set to gen_prompt.\n")
+			args.gen_phrase = args.prompt
+
+		if args.cond_phrase is None:
+			warnings.warn("\nYou should provide condition prompt phrase to use alpha masks inferred with cross attention differences. Set to cond_prompt.\n")
+			args.cond_phrase = args.cond_prompt
+
 
 		for token in args.gen_phrase.split():
 			assert token in args.prompt, f"{token} is not included in given generation prompt {args.prompt}"
@@ -72,6 +81,7 @@ def parse_args():
 	parser.add_argument('--alpha_mask', nargs="*", type=float, default=[1], help="Mask applied on inferred alpha. [1, 0, 0, 0] means only upper left is used with 1. None uses SmartControl's inferred alpha_mask.")
 	parser.add_argument('--alpha_fixed', action='store_true', default=False, help="Whether to use given alpha as fixed alpha. False means given alpha_mask is multiplied on inferred alpha elementwisely.")
 	parser.add_argument('--alpha_attn_diff', action='store_true', default=False, help="Whether to calculate alpha with differences btw two cross attentions on generate prompt and condition prompt.")
+	parser.add_argument('--attn_diff_threshold', type=float, default=0.0)
 	parser.add_argument('--cntl', type=str, default="depth", help="Type of condition. (default: depth map)")
 	parser.add_argument('--controlnet_conditioning_scale', type=float, default=1.0, help="Value of controlnet_conditioning_scale")
 	parser.add_argument('--detector_path', type=str, default="lllyasviel/Annotators", help="Path to fetch pretrained control detector")
