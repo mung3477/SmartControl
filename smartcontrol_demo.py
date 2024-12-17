@@ -5,8 +5,9 @@ from diffusers import (AutoencoderKL, ControlNetModel,
 from PIL import Image
 from pytorch_lightning import seed_everything
 
-from lib import (image_grid, init_store_attn_map, make_img_name, make_ref_name,
-                 parse_args, save_alpha_masks, save_attention_maps, assert_path)
+from lib import (assert_path, image_grid, init_store_attn_map, make_img_name,
+                 make_ref_name, parse_args, save_alpha_masks,
+                 save_attention_maps)
 from smartcontrol import SmartControlPipeline, register_unet
 
 image_dir = "./assets/images"
@@ -28,7 +29,7 @@ def main():
     controlnet = ControlNetModel.from_pretrained(args.controlnet_path, torch_dtype=torch.float16)
     vae = AutoencoderKL.from_pretrained(vae_model_path).to(dtype=torch.float16)
     pipe = SmartControlPipeline.from_pretrained(
-        base_model_path, controlnet=controlnet, vae=vae, torch_dtype=torch.float16, ignore_special_tkns=args.ignore_special_tkns
+        base_model_path, controlnet=controlnet, vae=vae, torch_dtype=torch.float16, ignore_special_tkns=args.ignore_special_tkns, diff_threshold=args.attn_diff_threshold
     )
     pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
     pipe.enable_model_cpu_offload()
