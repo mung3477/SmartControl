@@ -31,28 +31,29 @@ END
 
 
 subjects=("A photo of tiger")
+subj_phrases=("tiger")
 cond_prompts=("A photo of deer")
+cond_phrases=("deer")
 ref=("deer.png")
 cntl=("depth")
 
 for index in "${!subjects[@]}"
 do
-
+: << 'END'
 	# my control
-	# --gen_phrase="${subj_phrases[$index]}" \
-	# --cond_phrase="${cond_phrases[$index]}" \
 	# --ignore_special_tkns
 	CUDA_VISIBLE_DEVICES="0" python3 smartcontrol_demo.py \
 		--prompt="${subjects[$index]}" \
+		--gen_phrase="${subj_phrases[$index]}" \
 		--ref="${ref[$index]}" \
 		--cond_prompt="${cond_prompts[$index]}" \
+		--cond_phrase="${cond_phrases[$index]}" \
 		--cntl="${cntl[$index]}" \
 		--seed=12345 \
-		--alpha_mask=1 \
 		--alpha_attn_diff \
-		--attn_diff_threshold=0.2
+		--ignore_special_tkns
+END
 
-: << 'END'
 	# SmartControl
 	CUDA_VISIBLE_DEVICES="0" python3 smartcontrol_demo.py \
 		--prompt="${subjects[$index]}" \
@@ -60,6 +61,6 @@ do
 		--cntl="${cntl[$index]}" \
 		--seed=12345 \
 		--alpha_mask=1
-END
+
 
 done

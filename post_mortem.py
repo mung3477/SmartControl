@@ -4,7 +4,7 @@ import re
 from enum import Enum
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageChops
 from transformers import AutoTokenizer
 
 from lib import calc_diff, tokenize_and_mark_prompts
