@@ -295,29 +295,30 @@ def ca_forward(self, mask_options: AlphaOptions):
             h_4 =  sample
             c = torch.sigmoid(self.c_pre_list[0](torch.cat([h_1 , h_4,mid_block_additional_residual], dim=1)))
             ############################################# CONTROL ###############################################
-            alpha_mask = generate_mask(
-                alpha_mask=given_mask_options["alpha_mask"],
-                shape=c.shape[-2:],
-                device=self.device
-            )
-            paired_resblock_mask = get_paired_resblock_mask(
-                block_info={
-                    "name": self.mid_block.__class__.__name__,
-                    "idx": 0
-                },
-                inferred_masks=inferred_masks
-            )
-            if paired_resblock_mask is not None:
-                paired_resblock_mask = paired_resblock_mask.to(self.device)
 
-            c = choose_alpha_mask(
-                masks={
-                    "user_given": alpha_mask,
-                    "smartcntl_inferred": c,
-                    "attn_diff_inferred": paired_resblock_mask
-                },
-                use_fixed_mask=given_mask_options["fixed"]
-            )
+            # alpha_mask = generate_mask(
+            #     alpha_mask=given_mask_options["alpha_mask"],
+            #     shape=c.shape[-2:],
+            #     device=self.device
+            # )
+            # paired_resblock_mask = get_paired_resblock_mask(
+            #     block_info={
+            #         "name": self.mid_block.__class__.__name__,
+            #         "idx": 0
+            #     },
+            #     inferred_masks=inferred_masks
+            # )
+            # if paired_resblock_mask is not None:
+            #     paired_resblock_mask = paired_resblock_mask.to(self.device)
+
+            # c = choose_alpha_mask(
+            #     masks={
+            #         "user_given": alpha_mask,
+            #         "smartcntl_inferred": c,
+            #         "attn_diff_inferred": paired_resblock_mask
+            #     },
+            #     use_fixed_mask=given_mask_options["fixed"]
+            # )
 
             sample = sample + c * mid_block_additional_residual
             self.mid_block.alpha_mask = c
@@ -336,15 +337,15 @@ def ca_forward(self, mask_options: AlphaOptions):
                 upsample_size = down_block_res_samples[-1].shape[2:]
 
             if hasattr(upsample_block, "has_cross_attention") and upsample_block.has_cross_attention:
-                paired_resblock_mask = get_paired_resblock_mask(
-                    block_info={
-                        "name": upsample_block.__class__.__name__,
-                        "idx": i
-                    },
-                    inferred_masks=inferred_masks
-                )
-                if paired_resblock_mask is not None:
-                    paired_resblock_mask = paired_resblock_mask.to(self.device)
+                # paired_resblock_mask = get_paired_resblock_mask(
+                #     block_info={
+                #         "name": upsample_block.__class__.__name__,
+                #         "idx": i
+                #     },
+                #     inferred_masks=inferred_masks
+                # )
+                # if paired_resblock_mask is not None:
+                #     paired_resblock_mask = paired_resblock_mask.to(self.device)
 
                 sample = upsample_block(
                     hidden_states=sample,
@@ -357,7 +358,7 @@ def ca_forward(self, mask_options: AlphaOptions):
                     encoder_attention_mask=encoder_attention_mask,
                     c_predictor= self.c_pre_list[(3*i+1) :(3*i+4)],
                     timestep=timestep,
-                    paired_resblock_mask=paired_resblock_mask,
+                    # paired_resblock_mask=paired_resblock_mask,
                     given_mask_options=given_mask_options
                 )
             else:
@@ -430,19 +431,19 @@ def upblock2d_forward(self):
             c = torch.sigmoid(c_predictor[count](torch.cat([h_1 , h_4, res_hidden_states[:,c_half:]], dim=1)))
 
             ############################################# CONTROL ###############################################
-            alpha_mask = generate_mask(
-                alpha_mask=given_mask_options["alpha_mask"],
-                shape=c.shape[-2:],
-                device=res_hidden_states.device
-            )
-            c = choose_alpha_mask(
-                masks={
-                    "user_given": alpha_mask,
-                    "smartcntl_inferred": c,
-                    "attn_diff_inferred": torch.ones_like(alpha_mask) * 0.75
-                },
-                use_fixed_mask=given_mask_options["fixed"]
-            )
+            # alpha_mask = generate_mask(
+            #     alpha_mask=given_mask_options["alpha_mask"],
+            #     shape=c.shape[-2:],
+            #     device=res_hidden_states.device
+            # )
+            # c = choose_alpha_mask(
+            #     masks={
+            #         "user_given": alpha_mask,
+            #         "smartcntl_inferred": c,
+            #         "attn_diff_inferred": torch.ones_like(alpha_mask) * 0.75
+            #     },
+            #     use_fixed_mask=given_mask_options["fixed"]
+            # )
 
             res_hidden_states  = res_hidden_states[:,:c_half] + c * res_hidden_states[:,c_half:]
             count = count+1
@@ -530,19 +531,19 @@ def crossattnupblock2d_forward(self):
             c = torch.sigmoid(c_predictor[count](torch.cat([h_1 , h_4, res_hidden_states[:,c_half:]], dim=1)))
 
             ############################################# CONTROL ###############################################
-            alpha_mask = generate_mask(
-                alpha_mask=given_mask_options["alpha_mask"],
-                shape=c.shape[-2:],
-                device=res_hidden_states.device
-            )
-            c = choose_alpha_mask(
-                masks={
-                    "user_given": alpha_mask,
-                    "smartcntl_inferred": c,
-                    "attn_diff_inferred": paired_resblock_mask
-                },
-                use_fixed_mask=given_mask_options["fixed"]
-            )
+            # alpha_mask = generate_mask(
+            #     alpha_mask=given_mask_options["alpha_mask"],
+            #     shape=c.shape[-2:],
+            #     device=res_hidden_states.device
+            # )
+            # c = choose_alpha_mask(
+            #     masks={
+            #         "user_given": alpha_mask,
+            #         "smartcntl_inferred": c,
+            #         "attn_diff_inferred": paired_resblock_mask
+            #     },
+            #     use_fixed_mask=given_mask_options["fixed"]
+            # )
 
             res_hidden_states  = res_hidden_states[:,:c_half] + c * res_hidden_states[:,c_half:]
             count = count+1

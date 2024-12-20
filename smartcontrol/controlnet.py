@@ -58,8 +58,9 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			image_encoder=image_encoder,
 			requires_safety_checker=requires_safety_checker
 		)
-		self.ignore_special_tkns = ignore_special_tkns
-		self.diff_threshold = diff_threshold
+		# self.ignore_special_tkns = ignore_special_tkns
+		# self.diff_threshold = diff_threshold
+
 
 	def control_branch_forward(
 		self,
@@ -75,15 +76,15 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		output_name: str = None,
 		attn_options: AttnSaveOptions = default_option,
 	):
-		last_idx = len(self.tokenizer(prompt)['input_ids']) - 1
+		# last_idx = len(self.tokenizer(prompt)['input_ids']) - 1
 
 		if cross_attention_kwargs is None:
 			cross_attention_kwargs = {'timestep' : timestep}
 		else:
 			cross_attention_kwargs['timestep'] = timestep
 
-		if self.ignore_special_tkns:
-			cross_attention_kwargs['token_last_idx'] = last_idx
+		# if self.ignore_special_tkns:
+		# 	cross_attention_kwargs['token_last_idx'] = last_idx
 
 		down_block_res_samples, mid_block_res_sample = self.controlnet(
 			sample,
@@ -96,17 +97,17 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			return_dict=return_dict,
 		)
 
-		timestep_key = timestep.item()
-		organized = save_attention_maps(
-			{timestep_key: self.controlnet.attn_maps[timestep_key]},
-			self.tokenizer,
-			base_dir=f"log/attn_maps/{output_name}",
-			prompts=[prompt],
-			options=attn_options
-		)
-		del self.controlnet.attn_maps[timestep_key]
+		# timestep_key = timestep.item()
+		# organized = save_attention_maps(
+		# 	{timestep_key: self.controlnet.attn_maps[timestep_key]},
+		# 	self.tokenizer,
+		# 	base_dir=f"log/attn_maps/{output_name}",
+		# 	prompts=[prompt],
+		# 	options=attn_options
+		# )
+		# del self.controlnet.attn_maps[timestep_key]
 
-		return down_block_res_samples, mid_block_res_sample, organized
+		return down_block_res_samples, mid_block_res_sample, None
 
 	def infer_alpha_mask(self, output_name: str, timestep: int, cond_prompt_attns: dict, gen_prompt_attns: dict, trgt_tokens: AttnDiffTrgtTokens):
 		to_pil = ToPILImage()
@@ -525,7 +526,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					cond_scale = controlnet_cond_scale * controlnet_keep[i]
 
 				############################################################################
-				down_block_res_samples, mid_block_res_sample, gen_prompt_attn = self.control_branch_forward(
+				down_block_res_samples, mid_block_res_sample, _ = self.control_branch_forward(
 					control_model_input,
 					t,
 					prompt=prompt,
@@ -536,14 +537,14 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					cross_attention_kwargs=self.cross_attention_kwargs,
 					return_dict=False,
 					output_name=output_name,
-					attn_options={
-						"prefix": "",
-						"return_dict": True,
-						"ignore_special_tkns": self.ignore_special_tkns
-					}
+					# attn_options={
+					# 	"prefix": "",
+					# 	"return_dict": True,
+					# 	"ignore_special_tkns": self.ignore_special_tkns
+					# }
 				)
+				"""
 				inferred_masks = None
-
 				if use_attn_diff is True:
 					_, _2, cond_prompt_attn = self.control_branch_forward(
 						control_model_input,
@@ -569,6 +570,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 						gen_prompt_attns=gen_prompt_attn,
 						trgt_tokens=diff_phrases
 					)
+				"""
 				############################################################################
 
 				if guess_mode and self.do_classifier_free_guidance:
@@ -587,7 +589,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					cross_attention_kwargs=self.cross_attention_kwargs,
 					down_block_additional_residuals=down_block_res_samples,
 					mid_block_additional_residual=mid_block_res_sample,
-					inferred_masks=inferred_masks,
+					# inferred_masks=inferred_masks,
 					added_cond_kwargs=added_cond_kwargs,
 					return_dict=False,
 				)[0]

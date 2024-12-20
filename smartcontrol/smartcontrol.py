@@ -59,7 +59,7 @@ def register_unet(pipe, smart_ckpt, mask_options: AlphaOptions):
 
     pipe.unet.alpha_masks = dict()
     pipe.unet.forward = ca_forward(pipe.unet.cuda(), mask_options=mask_options)
-    register_forward_hooks(pipe.unet, pipe.unet.alpha_masks)
+    # register_forward_hooks(pipe.unet, pipe.unet.alpha_masks)
     replace_call_methods(pipe.unet)
 
     return pipe
