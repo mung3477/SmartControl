@@ -161,11 +161,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			# masks[trgt_block] = gen_attn
 			# masks[trgt_block][avg_diff > self.diff_threshold] = 0
 
-			white_img = Image.fromarray(np.ones_like(avg_diff))
-			diff_img = to_pil(avg_diff.to(torch.float32))
-			mask_img = ImageChops.subtract(white_img, diff_img)
-
-			to_pil(mask_img).save(f"{save_dir}/{trgt_block}-{trgt_tokens}.png")
+			to_pil(masks[trgt_block]).save(f"{save_dir}/{trgt_block}-{trgt_tokens}.png")
 
 		return masks
 
