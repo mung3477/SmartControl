@@ -31,29 +31,25 @@ END
 
 
 subjects=("A photo of tiger")
-subj_phrases=("tiger")
-cond_prompts=("A photo of deer")
-cond_phrases=("deer")
 ref=("deer.png")
 cntl=("depth")
+stop_point=(1000)
 
-for index in "${!subjects[@]}"
+for index in "${!stop_point[@]}"
 do
-: << 'END'
 	# my control
 	# --ignore_special_tkns
 	CUDA_VISIBLE_DEVICES="0" python3 smartcontrol_demo.py \
-		--prompt="${subjects[$index]}" \
-		--gen_phrase="${subj_phrases[$index]}" \
-		--ref="${ref[$index]}" \
-		--cond_prompt="${cond_prompts[$index]}" \
-		--cond_phrase="${cond_phrases[$index]}" \
-		--cntl="${cntl[$index]}" \
+		--prompt="${subjects[0]}" \
+		--ref="${ref[0]}" \
+		--cntl="${cntl[0]}" \
 		--seed=12345 \
-		--alpha_attn_diff \
-		--ignore_special_tkns
-END
+		--alpha_mask=1 \
+		--alpha_fixed \
+		--stop_point="${stop_point[$index]}"
 
+
+: << 'END'
 	# SmartControl
 	CUDA_VISIBLE_DEVICES="0" python3 smartcontrol_demo.py \
 		--prompt="${subjects[$index]}" \
@@ -61,6 +57,6 @@ END
 		--cntl="${cntl[$index]}" \
 		--seed=12345 \
 		--alpha_mask=1
-
+END
 
 done

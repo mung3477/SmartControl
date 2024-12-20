@@ -43,8 +43,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		feature_extractor: CLIPImageProcessor,
 		image_encoder: CLIPVisionModelWithProjection = None,
 		requires_safety_checker: bool = True,
-		ignore_special_tkns: bool = True,
-		diff_threshold: float = 0.0
+		options: dict = {}
 	):
 		super().__init__(
 			vae=vae,
@@ -60,7 +59,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		)
 		# self.ignore_special_tkns = ignore_special_tkns
 		# self.diff_threshold = diff_threshold
-
+		self.options = options
 
 	def control_branch_forward(
 		self,
@@ -165,6 +164,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			to_pil(masks[trgt_block]).save(f"{save_dir}/{trgt_block}-{trgt_tokens}.png")
 
 		return masks
+
 
 	@torch.no_grad()
 	def __call__(
@@ -481,7 +481,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		extra_step_kwargs = self.prepare_extra_step_kwargs(generator, eta)
 
 		# 7.1 Add image embeds for IP-Adapter
-		added_cond_kwargs = {"image_embeds": image_embeds} if ip_adapter_image is not None else None
+		added_cond_kwargs = {"image_embeds": image_embeds} if ip_adapter_image is not None else {}
 
 		# 7.2 Create tensor stating which controlnets to keep
 		controlnet_keep = []
@@ -493,12 +493,20 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			controlnet_keep.append(keeps[0] if isinstance(controlnet, ControlNetModel) else keeps)
 
 		# 8. Denoising loop
+		added_cond_kwargs["ignore_cont"] = False
 		num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
 		is_unet_compiled = is_compiled_module(self.unet)
 		is_controlnet_compiled = is_compiled_module(self.controlnet)
 		is_torch_higher_equal_2_1 = is_torch_version(">=", "2.1")
 		with self.progress_bar(total=num_inference_steps) as progress_bar:
 			for i, t in enumerate(timesteps):
+
+				if self.options["alternate"]:
+					ignore_cont = i % 2 == 1
+					added_cond_kwargs["ignore_cont"] = ignore_cont
+				if t < self.options["stop_point"]:
+					added_cond_kwargs["ignore_cont"] = True
+
 				# Relevant thread:
 				# https://dev-discuss.pytorch.org/t/cudagraphs-in-pytorch-2-0/1428
 				if (is_unet_compiled and is_controlnet_compiled) and is_torch_higher_equal_2_1:

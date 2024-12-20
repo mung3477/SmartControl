@@ -29,12 +29,15 @@ def make_img_name(args: argparse.Namespace) -> str:
 		alpha_map = str(args.alpha_mask)
 		alpha_calc = "multiplied with smartcontrol"
 
+	alternate = f"-alternate-{args.alternate}" if args.alternate else ""
+	stop_point = f"-stop-at-{args.stop_point}" if args.stop_point else ""
+
 
 	if args.ip is None:
-		return f"smartcontrol-{prompt}-{cntl_type}-{ref_name}-control-{controlnet_conditioning_scale}-alpha-{alpha_map}-{alpha_calc}-seed-{seed}"
+		return f"smartcontrol-{prompt}-{cntl_type}-{ref_name}-alpha-{alpha_map}-{alpha_calc}{alternate}{stop_point}-seed-{seed}"
 	else:
 		ip_name = make_ref_name(args.ip)
-		return f"IP-smartcontrol-{prompt}-{cntl_type}-{ref_name}-IP-{ip_name}-control-{controlnet_conditioning_scale}-alpha-{alpha_map}-{alpha_calc}-seed-{seed}"
+		return f"IP-smartcontrol-{prompt}-{cntl_type}-{ref_name}-IP-{ip_name}-alpha-{alpha_map}-{alpha_calc}-seed-{seed}"
 
 def check_args(args: argparse.Namespace):
 	if args.alpha_attn_diff is True:
@@ -82,6 +85,8 @@ def parse_args():
 	parser.add_argument('--alpha_fixed', action='store_true', default=False, help="Whether to use given alpha as fixed alpha. False means given alpha_mask is multiplied on inferred alpha elementwisely.")
 	parser.add_argument('--alpha_attn_diff', action='store_true', default=False, help="Whether to calculate alpha with differences btw two cross attentions on generate prompt and condition prompt.")
 	parser.add_argument('--attn_diff_threshold', type=float, default=0.0)
+	parser.add_argument('--alternate', action='store_true', default=False, help="Alternate condition usage")
+	parser.add_argument('--stop_point', type=int, default=0, help="Early stop timestep")
 	parser.add_argument('--cntl', type=str, default="depth", help="Type of condition. (default: depth map)")
 	parser.add_argument('--controlnet_conditioning_scale', type=float, default=1.0, help="Value of controlnet_conditioning_scale")
 	parser.add_argument('--detector_path', type=str, default="lllyasviel/Annotators", help="Path to fetch pretrained control detector")
