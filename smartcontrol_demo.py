@@ -5,8 +5,9 @@ from diffusers import (AutoencoderKL, ControlNetModel,
 from PIL import Image
 from pytorch_lightning import seed_everything
 
-from lib import (image_grid, init_store_attn_map, make_img_name, make_ref_name,
-                 parse_args, save_alpha_masks, save_attention_maps)
+from lib import (assert_path, image_grid, init_store_attn_map, make_img_name,
+                 make_ref_name, parse_args, save_alpha_masks,
+                 save_attention_maps)
 from smartcontrol import SmartControlPipeline, register_unet
 
 image_dir = "./assets/images"
@@ -27,8 +28,9 @@ def main():
 
     controlnet = ControlNetModel.from_pretrained(args.controlnet_path, torch_dtype=torch.float16)
     vae = AutoencoderKL.from_pretrained(vae_model_path).to(dtype=torch.float16)
+    options = {"alternate": args.alternate, "stop_point": args.stop_point}
     pipe = SmartControlPipeline.from_pretrained(
-        base_model_path, controlnet=controlnet, vae=vae, torch_dtype=torch.float16
+        base_model_path, controlnet=controlnet, vae=vae, torch_dtype=torch.float16, options=options
     )
     pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
     pipe.enable_model_cpu_offload()
@@ -53,18 +55,28 @@ def main():
         controlnet_conditioning_scale = args.controlnet_conditioning_scale,
         output_name = image_name,
         use_attn_diff = args.alpha_attn_diff,
-        trgt_token={
-            "gen": args.gen_tkn,
-            "cond": args.cond_tkn
+        diff_phrases = {
+            "gen": args.gen_phrase,
+            "cond": args.cond_phrase
         }
     ).images[0]
 
 
     image = image_grid([image.resize((256, 256)), control.resize((256, 256)),output.resize((256,256))], 1, 3, caption=image_name, options={"fill": (255, 255, 255)})
+    assert_path("output/vanilla/")
     image.save(f"output/vanilla/{image_name}.png")
     print(f"Saved at ./output/vanilla/{image_name}.png!")
 
-    save_attention_maps(pipe.unet.attn_maps, pipe.tokenizer, base_dir=f"log/attn_maps/{image_name}", prompts=[prompt])
+    save_attention_maps(
+        pipe.unet.attn_maps,
+        pipe.tokenizer,
+        base_dir=f"log/attn_maps/{image_name}",
+        prompts=[prompt],
+        options={
+            "prefix": "",
+            "return_dict": False,
+            "ignore_special_tkns": False
+        })
     save_alpha_masks(pipe.unet.alpha_masks, f'log/alpha_masks/{image_name}')
 
 if __name__ == "__main__":

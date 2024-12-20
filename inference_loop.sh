@@ -20,14 +20,43 @@ END
 
 
 # alphas=(0.0 0.2 0.4 0.6 0.8 1.0)
-alphas=(1.0)
-for alpha in "${alphas[@]}"
+# for alpha in "${alphas[@]}"
+
+# subjects=("A photo of tiger", "girl with a purse in anime style" "A man with short hair" "High-heeled shoe encrusted with diamonds")
+# subj_phrases=("tiger", "girl purse anime" "man short hair" "High-heeled shoe encrusted")
+# ref=("deer.png" "hulk.png" "long hair woman.png" "shoes.png")
+# cntl=("depth" "depth" "canny" "canny")
+# cond_prompts=("a photo of deer" "a photo of hulk" "A woman with long hair" "Enamel ankle boots with a strap")
+# cond_phrases=("deer" "photo hulk" "woman long hair" "ankle boots strap")
+
+
+subjects=("A photo of tiger")
+ref=("deer.png")
+cntl=("depth")
+stop_point=(1000)
+
+for index in "${!stop_point[@]}"
 do
-	CUDA_VISIBLE_DEVICES="5" python3 smartcontrol_demo.py \
-		--prompt="spiderman running" \
-		--ref="mickey.png" \
-		--cntl="depth" \
-		--seed=42 \
-		--alpha_mask=$alpha \
+	# my control
+	# --ignore_special_tkns
+	CUDA_VISIBLE_DEVICES="0" python3 smartcontrol_demo.py \
+		--prompt="${subjects[0]}" \
+		--ref="${ref[0]}" \
+		--cntl="${cntl[0]}" \
+		--seed=12345 \
+		--alpha_mask=1 \
+		--alpha_fixed \
+		--stop_point="${stop_point[$index]}"
+
+
+: << 'END'
+	# SmartControl
+	CUDA_VISIBLE_DEVICES="0" python3 smartcontrol_demo.py \
+		--prompt="${subjects[$index]}" \
+		--ref="${ref[$index]}" \
+		--cntl="${cntl[$index]}" \
+		--seed=12345 \
+		--alpha_mask=1
+END
 
 done

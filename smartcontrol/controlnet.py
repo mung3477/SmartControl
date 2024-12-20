@@ -24,7 +24,7 @@ from transformers import (CLIPImageProcessor, CLIPTextModel, CLIPTokenizer,
                           CLIPVisionModelWithProjection)
 
 from lib import (COND_BLOCKS, AttnSaveOptions, assert_path, default_option,
-                 save_attention_maps)
+                 save_attention_maps, tokenize_and_mark_prompts)
 
 from .types import AttnDiffTrgtTokens
 
@@ -43,6 +43,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		feature_extractor: CLIPImageProcessor,
 		image_encoder: CLIPVisionModelWithProjection = None,
 		requires_safety_checker: bool = True,
+		options: dict = {}
 	):
 		super().__init__(
 			vae=vae,
@@ -56,48 +57,74 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			image_encoder=image_encoder,
 			requires_safety_checker=requires_safety_checker
 		)
+		# self.ignore_special_tkns = ignore_special_tkns
+		# self.diff_threshold = diff_threshold
+		self.options = options
 
 	def control_branch_forward(
 		self,
-        sample: torch.FloatTensor,
-        timestep: Union[torch.Tensor, float, int],
-        encoder_hidden_states: torch.Tensor,
-        controlnet_cond: torch.FloatTensor,
-        conditioning_scale: float = 1.0,
-        guess_mode: bool = False,
-        return_dict: bool = True,
-        prompt: str = None,
-        output_name: str = None,
-        attn_options: AttnSaveOptions = default_option,
-    ):
+		sample: torch.FloatTensor,
+		timestep: Union[torch.Tensor, float, int],
+		encoder_hidden_states: torch.Tensor,
+		controlnet_cond: torch.FloatTensor,
+		conditioning_scale: float = 1.0,
+		guess_mode: bool = False,
+		cross_attention_kwargs: Optional[Dict[str, Any]] = None,
+		return_dict: bool = True,
+		prompt: str = None,
+		output_name: str = None,
+		attn_options: AttnSaveOptions = default_option,
+	):
+		# last_idx = len(self.tokenizer(prompt)['input_ids']) - 1
+
+		if cross_attention_kwargs is None:
+			cross_attention_kwargs = {'timestep' : timestep}
+		else:
+			cross_attention_kwargs['timestep'] = timestep
+
+		# if self.ignore_special_tkns:
+		# 	cross_attention_kwargs['token_last_idx'] = last_idx
+
 		down_block_res_samples, mid_block_res_sample = self.controlnet(
 			sample,
 			timestep,
 			encoder_hidden_states=encoder_hidden_states,
 			controlnet_cond=controlnet_cond,
 			conditioning_scale=conditioning_scale,
+			cross_attention_kwargs=cross_attention_kwargs,
 			guess_mode=guess_mode,
 			return_dict=return_dict,
 		)
 
-		timestep_key = timestep.item()
-		organized = save_attention_maps(
-			{timestep_key: self.controlnet.attn_maps[timestep_key]},
-			self.tokenizer,
-			base_dir=f"log/attn_maps/{output_name}",
-			prompts=[prompt],
-			options=attn_options
-		)
-		del self.controlnet.attn_maps[timestep_key]
+		# timestep_key = timestep.item()
+		# organized = save_attention_maps(
+		# 	{timestep_key: self.controlnet.attn_maps[timestep_key]},
+		# 	self.tokenizer,
+		# 	base_dir=f"log/attn_maps/{output_name}",
+		# 	prompts=[prompt],
+		# 	options=attn_options
+		# )
+		# del self.controlnet.attn_maps[timestep_key]
 
-		return down_block_res_samples, mid_block_res_sample, organized
+		return down_block_res_samples, mid_block_res_sample, None
 
-	def infer_alpha_mask(self, output_name: str, timestep: int, cond_prompt_attns: dict, gen_prompt_attns: dict, trgt_token: AttnDiffTrgtTokens):
+	def infer_alpha_mask(self, output_name: str, timestep: int, cond_prompt_attns: dict, gen_prompt_attns: dict, trgt_tokens: AttnDiffTrgtTokens):
 		to_pil = ToPILImage()
 		masks = {}
 		save_dir = f"log/alpha_masks/inferred/{output_name}/{timestep}"
 
 		assert_path(save_dir)
+
+		cond_tokens = tokenize_and_mark_prompts(
+			prompts=[trgt_tokens["cond"]],
+			tokenizer=self.tokenizer,
+			ignore_special_tokens=self.ignore_special_tkns
+		)[0]
+		gen_tokens = tokenize_and_mark_prompts(
+			prompts=[trgt_tokens["gen"]],
+			tokenizer=self.tokenizer,
+			ignore_special_tokens=self.ignore_special_tkns
+		)[0]
 
 		def _filter_dict_with_key(d: dict, substr: str):
 			return list(dict(filter(
@@ -110,27 +137,41 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			filtered_attns = [_filter_dict_with_key(block, trgt_token) for block in blocks]
 			return [attn for filtered in filtered_attns for attn in filtered]
 
+		def _aggregate_attns(attns: dict, trgt_block: str, tokens: List[str]):
+			aggregated = None
+
+			for token in tokens:
+				attn = _filter_attns(attns=attns, trgt_block=trgt_block, trgt_token=token)
+				block_avg_attn = np.array(attn).sum(axis=0) / len(attn)
+				if aggregated is None:
+					aggregated = block_avg_attn
+				else:
+					aggregated += block_avg_attn
+
+			aggregated /= len(tokens)
+			return torch.from_numpy(aggregated)
+
 		for trgt_block in COND_BLOCKS:
-			cond_attns = _filter_attns(cond_prompt_attns, trgt_block=trgt_block, trgt_token=trgt_token["cond"])
-			gen_attns = _filter_attns(gen_prompt_attns, trgt_block=trgt_block, trgt_token=trgt_token["gen"])
+			cond_attn = _aggregate_attns(cond_prompt_attns, trgt_block=trgt_block, tokens=cond_tokens)
+			gen_attn = _aggregate_attns(gen_prompt_attns, trgt_block=trgt_block, tokens=gen_tokens)
 
-			total_diff = torch.zeros_like(cond_attns[0])
-			for c, g in zip(cond_attns, gen_attns):
-				total_diff += c - g
+			avg_diff = cond_attn - gen_attn
 
-			avg_diff = total_diff / len(cond_attns)
 			masks[trgt_block] = 1 - avg_diff
+			# masks[trgt_block] = gen_attn
+			# masks[trgt_block][avg_diff > self.diff_threshold] = 0
 
-			to_pil(masks[trgt_block].to(torch.float32)).save(f"{save_dir}/{trgt_block}-{trgt_token}.png")
+			to_pil(masks[trgt_block]).save(f"{save_dir}/{trgt_block}-{trgt_tokens}.png")
 
 		return masks
+
 
 	@torch.no_grad()
 	def __call__(
 		self,
 		prompt: Union[str, List[str]] = None,
 		condition_prompt: Optional[str] = None,
-		trgt_token: Optional[AttnDiffTrgtTokens] = None,
+		diff_phrases: Optional[Dict[str, List[str]]] = None,
 		image: PipelineImageInput = None,
 		output_name: str = None,
 		height: Optional[int] = None,
@@ -440,7 +481,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		extra_step_kwargs = self.prepare_extra_step_kwargs(generator, eta)
 
 		# 7.1 Add image embeds for IP-Adapter
-		added_cond_kwargs = {"image_embeds": image_embeds} if ip_adapter_image is not None else None
+		added_cond_kwargs = {"image_embeds": image_embeds} if ip_adapter_image is not None else {}
 
 		# 7.2 Create tensor stating which controlnets to keep
 		controlnet_keep = []
@@ -452,12 +493,20 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			controlnet_keep.append(keeps[0] if isinstance(controlnet, ControlNetModel) else keeps)
 
 		# 8. Denoising loop
+		added_cond_kwargs["ignore_cont"] = False
 		num_warmup_steps = len(timesteps) - num_inference_steps * self.scheduler.order
 		is_unet_compiled = is_compiled_module(self.unet)
 		is_controlnet_compiled = is_compiled_module(self.controlnet)
 		is_torch_higher_equal_2_1 = is_torch_version(">=", "2.1")
 		with self.progress_bar(total=num_inference_steps) as progress_bar:
 			for i, t in enumerate(timesteps):
+
+				if self.options["alternate"]:
+					ignore_cont = i % 2 == 1
+					added_cond_kwargs["ignore_cont"] = ignore_cont
+				if t < self.options["stop_point"]:
+					added_cond_kwargs["ignore_cont"] = True
+
 				# Relevant thread:
 				# https://dev-discuss.pytorch.org/t/cudagraphs-in-pytorch-2-0/1428
 				if (is_unet_compiled and is_controlnet_compiled) and is_torch_higher_equal_2_1:
@@ -485,7 +534,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					cond_scale = controlnet_cond_scale * controlnet_keep[i]
 
 				############################################################################
-				down_block_res_samples, mid_block_res_sample, gen_prompt_attn = self.control_branch_forward(
+				down_block_res_samples, mid_block_res_sample, _ = self.control_branch_forward(
 					control_model_input,
 					t,
 					prompt=prompt,
@@ -493,15 +542,17 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					controlnet_cond=image,
 					conditioning_scale=cond_scale,
 					guess_mode=guess_mode,
+					cross_attention_kwargs=self.cross_attention_kwargs,
 					return_dict=False,
 					output_name=output_name,
-					attn_options={
-						"prefix": "",
-						"return_dict": True
-					}
+					# attn_options={
+					# 	"prefix": "",
+					# 	"return_dict": True,
+					# 	"ignore_special_tkns": self.ignore_special_tkns
+					# }
 				)
+				"""
 				inferred_masks = None
-
 				if use_attn_diff is True:
 					_, _2, cond_prompt_attn = self.control_branch_forward(
 						control_model_input,
@@ -515,7 +566,8 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 						output_name=output_name,
 						attn_options={
 							"prefix": "sub-",
-							"return_dict": True
+							"return_dict": True,
+							"ignore_special_tkns": self.ignore_special_tkns
 						}
 					)
 
@@ -524,8 +576,9 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 						timestep=t,
 						cond_prompt_attns=cond_prompt_attn,
 						gen_prompt_attns=gen_prompt_attn,
-						trgt_token=trgt_token
+						trgt_tokens=diff_phrases
 					)
+				"""
 				############################################################################
 
 				if guess_mode and self.do_classifier_free_guidance:
@@ -544,7 +597,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					cross_attention_kwargs=self.cross_attention_kwargs,
 					down_block_additional_residuals=down_block_res_samples,
 					mid_block_additional_residual=mid_block_res_sample,
-					inferred_masks=inferred_masks,
+					# inferred_masks=inferred_masks,
 					added_cond_kwargs=added_cond_kwargs,
 					return_dict=False,
 				)[0]

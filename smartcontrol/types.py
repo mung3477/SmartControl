@@ -1,6 +1,6 @@
-from typing import TypedDict
+from typing import TypedDict, List
 
 
 class AttnDiffTrgtTokens(TypedDict):
-    cond: str
-    gen: str
+    cond: List[str]
+    gen: List[str]

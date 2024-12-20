@@ -74,8 +74,8 @@ def get_paired_resblock_mask(block_info: BlockInfo, inferred_masks: Optional[Dic
 	return inferred_masks[paired_name]
 
 def choose_alpha_mask(masks: Masks, use_fixed_mask=False):
-	if masks["attn_diff_inferred"] is not None:
-		return masks["attn_diff_inferred"].unsqueeze(0).unsqueeze(0).repeat(2, 1, 1, 1)
+	# if masks["attn_diff_inferred"] is not None:
+	# 	return masks["attn_diff_inferred"].unsqueeze(0).unsqueeze(0).repeat(2, 1, 1, 1)
 	if use_fixed_mask:
 		return masks["user_given"].unsqueeze(0).unsqueeze(0).repeat(2, 1, 1, 1)
 	return masks["user_given"] * masks["smartcntl_inferred"]

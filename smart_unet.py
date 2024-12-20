@@ -296,25 +296,28 @@ def ca_forward(self, mask_options: AlphaOptions):
             c = torch.sigmoid(self.c_pre_list[0](torch.cat([h_1 , h_4,mid_block_additional_residual], dim=1)))
             ############################################# CONTROL ###############################################
             alpha_mask = generate_mask(
-                alpha_mask=given_mask_options["alpha_mask"],
+                alpha_mask= [0] if added_cond_kwargs["ignore_cont"] else given_mask_options["alpha_mask"],
                 shape=c.shape[-2:],
                 device=self.device
             )
-            paired_resblock_mask = get_paired_resblock_mask(
-                block_info={
-                    "name": self.mid_block.__class__.__name__,
-                    "idx": 0
-                },
-                inferred_masks=inferred_masks
-            )
+            # paired_resblock_mask = get_paired_resblock_mask(
+            #     block_info={
+            #         "name": self.mid_block.__class__.__name__,
+            #         "idx": 0
+            #     },
+            #     inferred_masks=inferred_masks
+            # )
+            # if paired_resblock_mask is not None:
+            #     paired_resblock_mask = paired_resblock_mask.to(self.device)
+
             c = choose_alpha_mask(
                 masks={
                     "user_given": alpha_mask,
                     "smartcntl_inferred": c,
-                    "attn_diff_inferred": paired_resblock_mask.to(self.device)
                 },
                 use_fixed_mask=given_mask_options["fixed"]
             )
+
 
             sample = sample + c * mid_block_additional_residual
             self.mid_block.alpha_mask = c
@@ -333,13 +336,16 @@ def ca_forward(self, mask_options: AlphaOptions):
                 upsample_size = down_block_res_samples[-1].shape[2:]
 
             if hasattr(upsample_block, "has_cross_attention") and upsample_block.has_cross_attention:
-                paired_resblock_mask=get_paired_resblock_mask(
-                        block_info={
-                            "name": upsample_block.__class__.__name__,
-                            "idx": i
-                        },
-                        inferred_masks=inferred_masks
-                    )
+                # paired_resblock_mask = get_paired_resblock_mask(
+                #     block_info={
+                #         "name": upsample_block.__class__.__name__,
+                #         "idx": i
+                #     },
+                #     inferred_masks=inferred_masks
+                # )
+                # if paired_resblock_mask is not None:
+                #     paired_resblock_mask = paired_resblock_mask.to(self.device)
+
                 sample = upsample_block(
                     hidden_states=sample,
                     temb=emb,
@@ -351,7 +357,12 @@ def ca_forward(self, mask_options: AlphaOptions):
                     encoder_attention_mask=encoder_attention_mask,
                     c_predictor= self.c_pre_list[(3*i+1) :(3*i+4)],
                     timestep=timestep,
-                    paired_resblock_mask=paired_resblock_mask.to(self.device),
+                    paired_resblock_mask=get_paired_resblock_mask(
+                        block_info={
+                            "name": upsample_block.__class__.__name__,
+                            "idx": i
+                        }
+                    ),
                     given_mask_options=given_mask_options
                 )
             else:
@@ -363,7 +374,8 @@ def ca_forward(self, mask_options: AlphaOptions):
                     scale=lora_scale,
                     c_predictor= self.c_pre_list[(3*i+1) :(3*i+4)],
                     timestep=timestep,
-                    given_mask_options=given_mask_options
+                    given_mask_options=given_mask_options,
+                    **added_cond_kwargs
                 )
 
         # 6. post-process
@@ -392,6 +404,7 @@ def upblock2d_forward(self):
         scale: float = 1.0,
         c_predictor =None,
         timestep: Optional[torch.Tensor] = None,
+        ignore_cont: bool = False,
         given_mask_options: AlphaOptions = {}
     ) -> torch.FloatTensor:
         is_freeu_enabled = (
@@ -425,12 +438,18 @@ def upblock2d_forward(self):
 
             ############################################# CONTROL ###############################################
             alpha_mask = generate_mask(
-                alpha_mask=given_mask_options["alpha_mask"],
+                alpha_mask=[0] if ignore_cont else given_mask_options["alpha_mask"],
                 shape=c.shape[-2:],
                 device=res_hidden_states.device
             )
-            c = alpha_mask * c if not given_mask_options["fixed"] \
-                else alpha_mask.unsqueeze(0).unsqueeze(0).repeat(2, 1, 1, 1)
+            c = choose_alpha_mask(
+                masks={
+                    "user_given": alpha_mask,
+                    "smartcntl_inferred": c,
+                },
+                use_fixed_mask=given_mask_options["fixed"]
+            )
+
             res_hidden_states  = res_hidden_states[:,:c_half] + c * res_hidden_states[:,c_half:]
             count = count+1
 
@@ -481,8 +500,9 @@ def crossattnupblock2d_forward(self):
         attention_mask: Optional[torch.FloatTensor] = None,
         encoder_attention_mask: Optional[torch.FloatTensor] = None,
         timestep: Optional[torch.Tensor] = None,
-        paired_resblock_mask: Optional[Dict] = None,
         c_predictor =None,
+        paired_resblock_mask: Optional[Dict] = None,
+        ignore_cont: bool = False,
         given_mask_options: AlphaOptions = {}
     ) -> torch.FloatTensor:
         lora_scale = cross_attention_kwargs.get("scale", 1.0) if cross_attention_kwargs is not None else 1.0
@@ -518,7 +538,7 @@ def crossattnupblock2d_forward(self):
 
             ############################################# CONTROL ###############################################
             alpha_mask = generate_mask(
-                alpha_mask=given_mask_options["alpha_mask"],
+                alpha_mask=[0] if ignore_cont else given_mask_options["alpha_mask"],
                 shape=c.shape[-2:],
                 device=res_hidden_states.device
             )
@@ -526,7 +546,6 @@ def crossattnupblock2d_forward(self):
                 masks={
                     "user_given": alpha_mask,
                     "smartcntl_inferred": c,
-                    "attn_diff_inferred": paired_resblock_mask
                 },
                 use_fixed_mask=given_mask_options["fixed"]
             )
