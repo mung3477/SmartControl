@@ -318,10 +318,14 @@ def ca_forward(self, mask_options: AlphaOptions):
                 use_fixed_mask=given_mask_options["fixed"]
             )
 
-
+            orig_sampe = sample
             sample = sample + c * mid_block_additional_residual
+
             self.mid_block.alpha_mask = c
             self.mid_block.timestep = int(timestep.item())
+
+            import pudb; pudb.set_trace()
+            print(torch.nn.functional.cosine_similarity(orig_sampe, sample))
 
         # 5. up
         for i, upsample_block in enumerate(self.up_blocks):
@@ -453,7 +457,10 @@ def upblock2d_forward(self):
             res_hidden_states  = res_hidden_states[:,:c_half] + c * res_hidden_states[:,c_half:]
             count = count+1
 
+            orig_hidden_states = torch.cat([hidden_states, res_hidden_states[:,:c_half]], dim=1)
             hidden_states = torch.cat([hidden_states, res_hidden_states], dim=1)
+            import pudb; pudb.set_trace()
+            print(torch.nn.functional.cosine_similarity(orig_hidden_states, hidden_states))
 
             ######################### . ALPHA MAP  ###########################
             if hasattr(self, "store_alpha_mask"):
@@ -553,7 +560,10 @@ def crossattnupblock2d_forward(self):
             res_hidden_states  = res_hidden_states[:,:c_half] + c * res_hidden_states[:,c_half:]
             count = count+1
 
+            orig_hidden_states = torch.cat([hidden_states, res_hidden_states[:,:c_half]], dim=1)
             hidden_states = torch.cat([hidden_states, res_hidden_states], dim=1)
+            import pudb; pudb.set_trace()
+            print(torch.nn.functional.cosine_similarity(orig_hidden_states, hidden_states))
 
             ######################### . ALPHA MAP  ###########################
             if hasattr(self, "store_alpha_mask"):

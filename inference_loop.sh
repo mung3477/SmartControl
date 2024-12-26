@@ -33,20 +33,18 @@ END
 subjects=("A photo of tiger")
 ref=("deer.png")
 cntl=("depth")
-stop_point=(1000)
 
-for index in "${!stop_point[@]}"
+for index in "${!subjects[@]}"
 do
 	# my control
 	# --ignore_special_tkns
 	CUDA_VISIBLE_DEVICES="0" python3 smartcontrol_demo.py \
-		--prompt="${subjects[0]}" \
-		--ref="${ref[0]}" \
-		--cntl="${cntl[0]}" \
+		--prompt="${subjects[$index]}" \
+		--ref="${ref[$index]}" \
+		--cntl="${cntl[$index]}" \
 		--seed=12345 \
 		--alpha_mask=1 \
-		--alpha_fixed \
-		--stop_point="${stop_point[$index]}"
+		--alpha_fixed
 
 
 : << 'END'
