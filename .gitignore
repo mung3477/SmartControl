@@ -7,3 +7,5 @@ log/**/*.png
 **/*.safetensors
 *.zip
 .venv
+*.txt
+*.pt
