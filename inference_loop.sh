@@ -43,8 +43,7 @@ do
 		--ref="${ref[$index]}" \
 		--cntl="${cntl[$index]}" \
 		--seed=12345 \
-		--alpha_mask=1 \
-		--alpha_fixed
+		--alpha_mask=1
 
 
 : << 'END'

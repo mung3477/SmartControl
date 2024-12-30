@@ -324,7 +324,7 @@ def ca_forward(self, mask_options: AlphaOptions):
             self.mid_block.alpha_mask = c
             self.mid_block.timestep = int(timestep.item())
 
-            print(timestep.item(), self.mid_block.__class__.__name__, torch.nn.functional.cosine_similarity(orig_sample, sample).mean().item())
+            # print(timestep.item(), self.mid_block.__class__.__name__, torch.nn.functional.cosine_similarity(orig_sample, sample).mean().item())
 
         # 5. up
         for i, upsample_block in enumerate(self.up_blocks):
@@ -459,7 +459,7 @@ def upblock2d_forward(self):
             count = count+1
 
             hidden_states = torch.cat([hidden_states, res_hidden_states], dim=1)
-            print(timestep.item(), self.__class__.__name__, torch.nn.functional.cosine_similarity(orig_hidden_states, hidden_states).mean().item())
+            # print(timestep.item(), self.__class__.__name__, torch.nn.functional.cosine_similarity(orig_hidden_states, hidden_states).mean().item())
 
             ######################### . ALPHA MAP  ###########################
             if hasattr(self, "store_alpha_mask"):
@@ -564,7 +564,7 @@ def crossattnupblock2d_forward(self):
 
             count = count+1
 
-            print(timestep.item(), self.__class__.__name__, torch.nn.functional.cosine_similarity(orig_hidden_states, hidden_states).mean().item())
+            # print(timestep.item(), self.__class__.__name__, torch.nn.functional.cosine_similarity(orig_hidden_states, hidden_states).mean().item())
             ######################### . ALPHA MAP  ###########################
             if hasattr(self, "store_alpha_mask"):
                 self.alpha_mask = c

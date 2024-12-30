@@ -500,6 +500,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		is_torch_higher_equal_2_1 = is_torch_version(">=", "2.1")
 		with self.progress_bar(total=num_inference_steps) as progress_bar:
 			for i, t in enumerate(timesteps):
+				import pudb; pudb.set_trace()
 
 				if self.options["alternate"]:
 					ignore_cont = i % 2 == 1
@@ -634,6 +635,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			self.controlnet.to("cpu")
 			torch.cuda.empty_cache()
 
+		torch.save(latents, "./log/latents/final_latent")
 		if not output_type == "latent":
 			image = self.vae.decode(latents / self.vae.config.scaling_factor, return_dict=False, generator=generator)[
 				0
