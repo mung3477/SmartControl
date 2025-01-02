@@ -669,7 +669,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			self.controlnet.to("cpu")
 			torch.cuda.empty_cache()
 
-		torch.save(latents, "./log/latents/final_latent")
+		torch.save(latents, "./log/latents/final_latent.pt")
 		if not output_type == "latent":
 			image = self.vae.decode(latents / self.vae.config.scaling_factor, return_dict=False, generator=generator)[
 				0
