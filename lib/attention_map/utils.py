@@ -36,7 +36,7 @@ def _average(agg_res: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
 	for block, CAs in agg_res.items():
 		for block_num, attn in CAs.items():
 			assert isinstance(attn, torch.Tensor), "aggregation should return a dictionary who has a tensor as value"
-			agg[block][block_num] = attn.sum(dim=0)
+			agg[block][block_num] = attn.mean(dim=0)
 
 	return agg
 
