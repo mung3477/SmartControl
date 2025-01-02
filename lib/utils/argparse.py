@@ -14,16 +14,21 @@ def make_img_name(args: argparse.Namespace) -> str:
 	cntl_type = args.cntl
 	seed = args.seed
 
-	if args.alpha_fixed:
+
+	if args.alpha_attn_prev:
+			alpha_map = "prev-timestep"
+			alpha_calc = args.focus_prompt
+			if args.alpha_fixed:
+				alpha_calc += f"-{str(args.alpha_mask)}-on-timestep-999"
+			else:
+				alpha_calc += f"-SmartControl-on-timestep-999"
+	elif args.alpha_fixed:
 		alpha_map = str(args.alpha_mask)
 		alpha_calc = "fixed"
 	elif args.alpha_attn_diff:
 		alpha_map = "diff"
 		alpha_calc = f"{args.gen_phrase} vs {args.cond_phrase}"
 		alpha_calc += f"-threshold {args.attn_diff_threshold}"
-	elif args.alpha_attn_prev:
-		alpha_map = "prev-timestep"
-		alpha_calc = args.focus_prompt
 	else:
 		alpha_map = str(args.alpha_mask)
 		alpha_calc = "multiplied with smartcontrol"
@@ -75,6 +80,10 @@ def check_args(args: argparse.Namespace):
 		assert args.focus_prompt is not None, "Focus prompt is needed"
 		for token in args.focus_prompt.split():
 			assert token in args.prompt, f"{token} is not included in given generation prompt {args.prompt}"
+
+		if args.alpha_fixed is False:
+			warnings.warn("Current setting uses SmartControl on timestep 999.")
+
 
 def decide_cntl(args: argparse.Namespace):
     if args.cntl == "depth":
