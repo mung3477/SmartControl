@@ -9,6 +9,7 @@ from diffusers.utils import (USE_PEFT_BACKEND, BaseOutput, deprecate,
                              unscale_lora_layers)
 # from ..utils import is_torch_version, logging
 from diffusers.utils.torch_utils import apply_freeu
+from torchvision import transforms as T
 
 from lib import (AlphaOptions, choose_alpha_mask, generate_mask,
                  get_paired_resblock_mask)
@@ -381,6 +382,10 @@ def ca_forward(self, mask_options: AlphaOptions):
                     given_mask_options=given_mask_options
                 )
             else:
+                attn_inferred_mask = None
+                if prev_t_attns is not None:
+                    attn_inferred_mask = prev_t_attns["mid_block"][0].to(self.device)
+
                 sample = upsample_block(
                     hidden_states=sample,
                     temb=emb,
@@ -389,6 +394,7 @@ def ca_forward(self, mask_options: AlphaOptions):
                     scale=lora_scale,
                     c_predictor= self.c_pre_list[(3*i+1) :(3*i+4)],
                     timestep=timestep,
+                    attn_inferred_mask=attn_inferred_mask,
                     given_mask_options=given_mask_options,
                     **added_cond_kwargs
                 )
@@ -419,6 +425,7 @@ def upblock2d_forward(self):
         scale: float = 1.0,
         c_predictor =None,
         timestep: Optional[torch.Tensor] = None,
+        attn_inferred_mask: Optional[torch.Tensor] = None,
         ignore_cont: bool = False,
         given_mask_options: AlphaOptions = {}
     ) -> torch.FloatTensor:
@@ -461,7 +468,7 @@ def upblock2d_forward(self):
                 masks={
                     "user_given": alpha_mask,
                     "smartcntl_inferred": c,
-                    "attn_inferred": None,
+                    "attn_inferred": attn_inferred_mask
                 },
                 use_fixed_mask=given_mask_options["fixed"]
             )
