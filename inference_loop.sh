@@ -43,7 +43,10 @@ do
 		--ref="${ref[$index]}" \
 		--cntl="${cntl[$index]}" \
 		--seed=12345 \
-		--alpha_mask=1
+		--alpha_mask=1 \
+		--alpha_attn_prev \
+		--focus_prompt="tiger" \
+		--ignore_special_tkns
 
 
 : << 'END'

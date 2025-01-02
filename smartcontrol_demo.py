@@ -24,11 +24,14 @@ def main():
     preprocessor = args.preprocessor
     control = preprocessor(image)
     prompt = args.prompt
-    cond_prompt = args.cond_prompt
 
     controlnet = ControlNetModel.from_pretrained(args.controlnet_path, torch_dtype=torch.float16)
     vae = AutoencoderKL.from_pretrained(vae_model_path).to(dtype=torch.float16)
-    options = {"alternate": args.alternate, "stop_point": args.stop_point}
+    options = {
+        "ignore_special_tkns": args.ignore_special_tkns,
+        "alternate": args.alternate,
+        "stop_point": args.stop_point
+    }
     pipe = SmartControlPipeline.from_pretrained(
         base_model_path, controlnet=controlnet, vae=vae, torch_dtype=torch.float16, options=options
     )
@@ -49,16 +52,11 @@ def main():
     image_name = make_img_name(args)
     output = pipe(
         prompt=prompt,
-        condition_prompt=cond_prompt,
+        focus_prompt = args.focus_prompt,
         image=control,
         # negative_prompt=negative_prompt_path,
         controlnet_conditioning_scale = args.controlnet_conditioning_scale,
         output_name = image_name,
-        use_attn_diff = args.alpha_attn_diff,
-        diff_phrases = {
-            "gen": args.gen_phrase,
-            "cond": args.cond_phrase
-        }
     ).images[0]
 
 
@@ -75,7 +73,7 @@ def main():
         options={
             "prefix": "",
             "return_dict": False,
-            "ignore_special_tkns": False
+            "ignore_special_tkns": args.ignore_special_tkns
         })
     save_alpha_masks(pipe.unet.alpha_masks, f'log/alpha_masks/{image_name}')
 

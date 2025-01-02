@@ -10,10 +10,8 @@ def make_ref_name(path: str) -> str:
 
 def make_img_name(args: argparse.Namespace) -> str:
 	prompt = args.prompt
-	ignore_special_tkns: args.ignore_special_tkns
 	ref_name = make_ref_name(args.ref)
 	cntl_type = args.cntl
-	controlnet_conditioning_scale = args.controlnet_conditioning_scale
 	seed = args.seed
 
 	if args.alpha_fixed:
@@ -22,12 +20,16 @@ def make_img_name(args: argparse.Namespace) -> str:
 	elif args.alpha_attn_diff:
 		alpha_map = "diff"
 		alpha_calc = f"{args.gen_phrase} vs {args.cond_phrase}"
-		if args.ignore_special_tkns:
-			alpha_calc += "-no <sot> <eot>"
 		alpha_calc += f"-threshold {args.attn_diff_threshold}"
+	elif args.alpha_attn_prev:
+		alpha_map = "prev-timestep"
+		alpha_calc = args.focus_prompt
 	else:
 		alpha_map = str(args.alpha_mask)
 		alpha_calc = "multiplied with smartcontrol"
+
+	if args.ignore_special_tkns:
+			alpha_calc += "-no <sot> <eot>"
 
 	alternate = f"-alternate-{args.alternate}" if args.alternate else ""
 	stop_point = f"-stop-at-{args.stop_point}" if args.stop_point else ""
@@ -69,6 +71,10 @@ def check_args(args: argparse.Namespace):
 			if args.gen_phrase == args.prompt and args.cond_phrase == args.cond_prompt:
 				warnings.warn("You are ignoring <sot> and <eot>, but you are using both prompts to calculate cross attention difference. This will make the difference almost ZERO\n")
 
+	if args.alpha_attn_prev is True:
+		assert args.focus_prompt is not None, "Focus prompt is needed"
+		for token in args.focus_prompt.split():
+			assert token in args.prompt, f"{token} is not included in given generation prompt {args.prompt}"
 
 def decide_cntl(args: argparse.Namespace):
     if args.cntl == "depth":
@@ -87,6 +93,7 @@ def parse_args():
 	parser.add_argument('--alpha_fixed', action='store_true', default=False, help="Whether to use given alpha as fixed alpha. False means given alpha_mask is multiplied on inferred alpha elementwisely.")
 	parser.add_argument('--alpha_attn_diff', action='store_true', default=False, help="Whether to calculate alpha with differences btw two cross attentions on generate prompt and condition prompt.")
 	parser.add_argument('--attn_diff_threshold', type=float, default=0.0)
+	parser.add_argument('--alpha_attn_prev', action='store_true', default=False, help="Whether to use previous timestep's attention map as an alpha mask.")
 	parser.add_argument('--alternate', action='store_true', default=False, help="Alternate condition usage")
 	parser.add_argument('--stop_point', type=int, default=0, help="Early stop timestep")
 	parser.add_argument('--cntl', type=str, default="depth", help="Type of condition. (default: depth map)")
@@ -94,7 +101,7 @@ def parse_args():
 	parser.add_argument('--detector_path', type=str, default="lllyasviel/Annotators", help="Path to fetch pretrained control detector")
 	parser.add_argument('--seed', type=int, default=12345, help="Seed")
 	parser.add_argument('--prompt', type=str, required=True)
-	parser.add_argument('--gen_phrase', type=str, help="Substring of given generation prompt to calculate cross attention differences")
+	parser.add_argument('--focus_prompt', type=str, help="Substring of given generation prompt to use corresponding cross attention map as an alpha mask")
 	parser.add_argument('--cond_prompt', type=str, help="Prompt to be cross-attentioned with condition image latent")
 	parser.add_argument('--cond_phrase', type=str, help="Substring of given condition prompt to calculate cross attention differences")
 	parser.add_argument('--ignore_special_tkns', action='store_true', default=False, help="Whether to ignore <sot> and <eot> while calculating cross attention differences")

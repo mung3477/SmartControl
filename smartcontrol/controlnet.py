@@ -23,8 +23,9 @@ from torchvision.transforms import ToPILImage
 from transformers import (CLIPImageProcessor, CLIPTextModel, CLIPTokenizer,
                           CLIPVisionModelWithProjection)
 
-from lib import (COND_BLOCKS, AttnSaveOptions, assert_path, default_option,
-                 save_attention_maps, tokenize_and_mark_prompts)
+from lib import (COND_BLOCKS, AttnSaveOptions, agg_by_blocks, assert_path,
+                 default_option, save_attention_maps,
+                 tokenize_and_mark_prompts)
 
 from .types import AttnDiffTrgtTokens
 
@@ -57,7 +58,6 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			image_encoder=image_encoder,
 			requires_safety_checker=requires_safety_checker
 		)
-		# self.ignore_special_tkns = ignore_special_tkns
 		# self.diff_threshold = diff_threshold
 		self.options = options
 
@@ -165,13 +165,30 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 
 		return masks
 
+	def get_focus_ids(self, prompts: List[Tuple[str, str]]):
+		focus_indexes: List[List[int]] = list()
+
+		if hasattr(self, "tokenizer") and isinstance(self.tokenizer, CLIPTokenizer):
+			for bn, (prompt, focus_prompt) in enumerate(prompts):
+				focus_indexes.append(list())
+				focus_tokens: List[int] = self.tokenizer([focus_prompt])['input_ids'][0][1: -1]
+				prompt_tokens: List[int] = self.tokenizer([prompt])['input_ids'][0]
+				if self.options["ignore_special_tkns"]:
+					prompt_tokens = prompt_tokens[1: -1]
+
+
+				for i, tkn in enumerate(prompt_tokens):
+					if tkn in focus_tokens:
+						focus_indexes[bn].append(i)
+						focus_tokens.remove(tkn)
+
+		return focus_indexes
 
 	@torch.no_grad()
 	def __call__(
 		self,
 		prompt: Union[str, List[str]] = None,
 		condition_prompt: Optional[str] = None,
-		diff_phrases: Optional[Dict[str, List[str]]] = None,
 		image: PipelineImageInput = None,
 		output_name: str = None,
 		height: Optional[int] = None,
@@ -190,6 +207,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		output_type: Optional[str] = "pil",
 		return_dict: bool = True,
 		use_attn_diff: bool = False,
+		focus_prompt: Optional[Union[str, List[str]]] = None,
 		cross_attention_kwargs: Optional[Dict[str, Any]] = None,
 		controlnet_conditioning_scale: Union[float, List[float]] = 1.0,
 		guess_mode: bool = False,
@@ -500,7 +518,6 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		is_torch_higher_equal_2_1 = is_torch_version(">=", "2.1")
 		with self.progress_bar(total=num_inference_steps) as progress_bar:
 			for i, t in enumerate(timesteps):
-				import pudb; pudb.set_trace()
 
 				if self.options["alternate"]:
 					ignore_cont = i % 2 == 1
@@ -580,6 +597,14 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 						trgt_tokens=diff_phrases
 					)
 				"""
+
+				prev_t_attns = None
+				if i > 0 and focus_prompt is not None:
+					focus_indexes = self.get_focus_ids(list(zip([prompt], [focus_prompt])))[0] # do not use batch implementation
+
+					prev_t_attns = self.unet.attn_maps[timesteps[i - 1].item()]
+					prev_t_attns = agg_by_blocks(prev_t_attns, focus_indexes)
+
 				############################################################################
 
 				if guess_mode and self.do_classifier_free_guidance:
@@ -589,16 +614,25 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					down_block_res_samples = [torch.cat([torch.zeros_like(d), d]) for d in down_block_res_samples]
 					mid_block_res_sample = torch.cat([torch.zeros_like(mid_block_res_sample), mid_block_res_sample])
 
+				if self.options["ignore_special_tkns"]:
+					last_idx = len(self.tokenizer(prompt)['input_ids']) - 1
+
+					if cross_attention_kwargs is None:
+						cross_attention_kwargs = {'token_last_idx': last_idx}
+					else:
+						cross_attention_kwargs['token_last_idx'] = last_idx
+
 				# predict the noise residual
 				noise_pred = self.unet(
 					latent_model_input,
 					t,
 					encoder_hidden_states=prompt_embeds,
 					timestep_cond=timestep_cond,
-					cross_attention_kwargs=self.cross_attention_kwargs,
+					cross_attention_kwargs=cross_attention_kwargs,
 					down_block_additional_residuals=down_block_res_samples,
 					mid_block_additional_residual=mid_block_res_sample,
 					# inferred_masks=inferred_masks,
+					prev_t_attns=prev_t_attns,
 					added_cond_kwargs=added_cond_kwargs,
 					return_dict=False,
 				)[0]
