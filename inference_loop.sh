@@ -22,32 +22,34 @@ END
 # alphas=(0.0 0.2 0.4 0.6 0.8 1.0)
 # for alpha in "${alphas[@]}"
 
-# subjects=("A photo of tiger", "girl with a purse in anime style" "A man with short hair" "High-heeled shoe encrusted with diamonds")
-# subj_phrases=("tiger", "girl purse anime" "man short hair" "High-heeled shoe encrusted")
-# ref=("deer.png" "hulk.png" "long hair woman.png" "shoes.png")
-# cntl=("depth" "depth" "canny" "canny")
-# cond_prompts=("a photo of deer" "a photo of hulk" "A woman with long hair" "Enamel ankle boots with a strap")
-# cond_phrases=("deer" "photo hulk" "woman long hair" "ankle boots strap")
+# subjects=("A photo of tiger" "girl with a purse in anime style" "A man with short hair" "High-heeled shoe encrusted with diamonds" "A dog doing deadlift")
+# ref=("deer.png" "hulk.png" "long hair woman.png" "shoes.png" "doing deadlift.png")
+# cntl=("depth" "depth" "canny" "canny" "depth")
+# mask_prompt=("A photo of tiger with a horn" "muscular girl with a purse" "A man with long hair" "enamel ankle boots with a strap" "a man doing deadlift")
+# focus_prompt=("tiger" "girl" "man" "boots" "man")
 
-
-subjects=("A photo of tiger")
-ref=("deer.png")
+subjects=("A bear doing deadlift")
+mask_prompt=("a man doing deadlift")
+focus_prompt=("deadlift")
+ref=("doing deadlift.png")
 cntl=("depth")
 
 for index in "${!subjects[@]}"
 do
+
 	# my control
 	# --ignore_special_tkns
 	CUDA_VISIBLE_DEVICES="0" python3 smartcontrol_demo.py \
 		--prompt="${subjects[$index]}" \
+		--cond_prompt="${mask_prompt[$index]}" \
+		--focus_prompt="${focus_prompt[$index]}" \
 		--ref="${ref[$index]}" \
 		--cntl="${cntl[$index]}" \
 		--seed=12345 \
 		--alpha_mask=1 \
 		--alpha_attn_prev \
-		--focus_prompt="tiger" \
-		--ignore_special_tkns
-
+		--alpha_fixed \
+		--ignore_special_tkns \
 
 : << 'END'
 	# SmartControl
@@ -56,7 +58,8 @@ do
 		--ref="${ref[$index]}" \
 		--cntl="${cntl[$index]}" \
 		--seed=12345 \
-		--alpha_mask=1
+		--alpha_mask=1 \
+		--alpha_fixed
 END
 
 done

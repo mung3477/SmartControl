@@ -17,7 +17,7 @@ def make_img_name(args: argparse.Namespace) -> str:
 
 	if args.alpha_attn_prev:
 			alpha_map = "prev-timestep"
-			alpha_calc = args.focus_prompt
+			alpha_calc = f"{args.focus_prompt} token's mask on {args.cond_prompt}"
 			if args.alpha_fixed:
 				alpha_calc += f"-{str(args.alpha_mask)}-on-timestep-999"
 			else:
@@ -77,12 +77,14 @@ def check_args(args: argparse.Namespace):
 				warnings.warn("You are ignoring <sot> and <eot>, but you are using both prompts to calculate cross attention difference. This will make the difference almost ZERO\n")
 
 	if args.alpha_attn_prev is True:
+		assert args.cond_prompt is not None, "Condition prompt is needed"
 		assert args.focus_prompt is not None, "Focus prompt is needed"
 		for token in args.focus_prompt.split():
-			assert token in args.prompt, f"{token} is not included in given generation prompt {args.prompt}"
+			assert token in args.cond_prompt, f"{token} is not included in given generation prompt {args.cond_prompt}"
 
 		if args.alpha_fixed is False:
 			warnings.warn("Current setting uses SmartControl on timestep 999.")
+
 
 
 def decide_cntl(args: argparse.Namespace):
@@ -111,8 +113,7 @@ def parse_args():
 	parser.add_argument('--seed', type=int, default=12345, help="Seed")
 	parser.add_argument('--prompt', type=str, required=True)
 	parser.add_argument('--focus_prompt', type=str, help="Substring of given generation prompt to use corresponding cross attention map as an alpha mask")
-	parser.add_argument('--cond_prompt', type=str, help="Prompt to be cross-attentioned with condition image latent")
-	parser.add_argument('--cond_phrase', type=str, help="Substring of given condition prompt to calculate cross attention differences")
+	parser.add_argument('--cond_prompt', type=str, help="Prompt used to extract cross attention map")
 	parser.add_argument('--ignore_special_tkns', action='store_true', default=False, help="Whether to ignore <sot> and <eot> while calculating cross attention differences")
 	parser.add_argument('--ref', type=str, help="A path to an image that will be used as a control", required=True)
 	parser.add_argument('--ip', type=str, default=None, help="A path to an image that will be used as an image prompt")

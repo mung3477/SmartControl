@@ -188,7 +188,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 	def __call__(
 		self,
 		prompt: Union[str, List[str]] = None,
-		condition_prompt: Optional[str] = None,
+		mask_prompt: Optional[str] = None,
 		image: PipelineImageInput = None,
 		output_name: str = None,
 		height: Optional[int] = None,
@@ -401,29 +401,11 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			clip_skip=self.clip_skip,
 		)
 
-		################################################################################
-		condition_prompt = condition_prompt or prompt
-		cond_prompt_embeds, neg_cond_prompt_embeds = self.encode_prompt(
-			condition_prompt,
-			device,
-			num_images_per_prompt,
-			self.do_classifier_free_guidance,
-			negative_prompt,
-			prompt_embeds=None,
-			negative_prompt_embeds=None,
-			lora_scale=text_encoder_lora_scale,
-			clip_skip=self.clip_skip,
-		)
-		################################################################################
-
 		# For classifier free guidance, we need to do two forward passes.
 		# Here we concatenate the unconditional and text embeddings into a single batch
 		# to avoid doing two forward passes
 		if self.do_classifier_free_guidance:
 			prompt_embeds = torch.cat([negative_prompt_embeds, prompt_embeds])
-			##########################################################################################
-			cond_prompt_embeds = torch.cat([neg_cond_prompt_embeds, cond_prompt_embeds])
-			##########################################################################################
 
 		if ip_adapter_image is not None:
 			output_hidden_state = False if isinstance(self.unet.encoder_hid_proj, ImageProjection) else True
@@ -599,10 +581,9 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 				"""
 
 				prev_t_attns = None
-				if i > 0 and focus_prompt is not None:
-					focus_indexes = self.get_focus_ids(list(zip([prompt], [focus_prompt])))[0] # do not use batch implementation
-
-					prev_t_attns = self.unet.attn_maps[timesteps[i - 1].item()]
+				if focus_prompt is not None and "prepare_phase" in kwargs and kwargs["prepare_phase"] is False:
+					focus_indexes = self.get_focus_ids(list(zip([mask_prompt], [focus_prompt])))[0] # do not use batch implementation
+					prev_t_attns = self.unet.attn_maps[timesteps[i].item()]
 					prev_t_attns = agg_by_blocks(prev_t_attns, focus_indexes)
 
 				############################################################################
@@ -687,7 +668,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		image = self.image_processor.postprocess(image, output_type=output_type, do_denormalize=do_denormalize)
 
 		# Offload all models
-		self.maybe_free_model_hooks()
+		# self.maybe_free_model_hooks()
 
 		if not return_dict:
 			return (image, has_nsfw_concept)

@@ -99,8 +99,6 @@ def init_pipeline(pipeline):
 		model = register_cross_attention_hook(model, 'attn2')
 		model = replace_call_method_for_unet(model)
 
-	return pipeline
-
 def init_store_attn_map(pipeline):
 	init_cross_attn()
-	return init_pipeline(pipeline=pipeline)
+	init_pipeline(pipeline=pipeline)

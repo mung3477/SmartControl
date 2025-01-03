@@ -16,6 +16,61 @@ vae_model_path = "stabilityai/sd-vae-ft-mse"
 # negative_prompt_path = '/home/liuxiaoyu/compare/controlnet/realisticvision-negative-embedding'
 device = "cuda"
 
+def use_prev_t_attn(args, control, pipe):
+    image_name = make_img_name(args)
+    pipe(
+        prompt=args.cond_prompt,
+        image=control,
+        # negative_prompt=negative_prompt_path,
+        controlnet_conditioning_scale = args.controlnet_conditioning_scale,
+        output_name = image_name,
+        prepare_phase=True
+    )
+    save_attention_maps(
+        pipe.unet.attn_maps,
+        pipe.tokenizer,
+        base_dir=f"log/attn_maps/{image_name}/{args.cond_prompt}",
+        prompts=[args.cond_prompt],
+        options={
+            "prefix": "",
+            "return_dict": False,
+            "ignore_special_tkns": args.ignore_special_tkns
+        })
+
+    register_unet(
+        pipe,
+        args.smart_ckpt,
+        mask_options={
+            "alpha_mask": args.alpha_mask,
+            "fixed": args.alpha_fixed
+        },
+        reset_masks=False
+    )
+    output = pipe(
+        prompt=args.prompt,
+        mask_prompt=args.cond_prompt,
+        focus_prompt = args.focus_prompt,
+        image=control,
+        # negative_prompt=negative_prompt_path,
+        controlnet_conditioning_scale = args.controlnet_conditioning_scale,
+        output_name = image_name,
+        prepare_phase=False
+    ).images[0]
+
+    return output, image_name
+
+def vanilla(args, control, pipe):
+    image_name = make_img_name(args)
+    output = pipe(
+        prompt=args.prompt,
+        image=control,
+        # negative_prompt=negative_prompt_path,
+        controlnet_conditioning_scale = args.controlnet_conditioning_scale,
+        output_name = image_name,
+    ).images[0]
+
+    return output, image_name
+
 def main():
     args = parse_args()
 
@@ -23,7 +78,6 @@ def main():
     image = Image.open(image_fp)
     preprocessor = args.preprocessor
     control = preprocessor(image)
-    prompt = args.prompt
 
     controlnet = ControlNetModel.from_pretrained(args.controlnet_path, torch_dtype=torch.float16)
     vae = AutoencoderKL.from_pretrained(vae_model_path).to(dtype=torch.float16)
@@ -37,8 +91,8 @@ def main():
     )
     pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
     pipe.enable_model_cpu_offload()
-    pipe = init_store_attn_map(pipe)
-    pipe = register_unet(
+    init_store_attn_map(pipe)
+    register_unet(
         pipe,
         args.smart_ckpt,
         mask_options={
@@ -49,15 +103,10 @@ def main():
 
     seed_everything(args.seed)
 
-    image_name = make_img_name(args)
-    output = pipe(
-        prompt=prompt,
-        focus_prompt = args.focus_prompt,
-        image=control,
-        # negative_prompt=negative_prompt_path,
-        controlnet_conditioning_scale = args.controlnet_conditioning_scale,
-        output_name = image_name,
-    ).images[0]
+    if args.alpha_attn_prev:
+        output, image_name = use_prev_t_attn(args, control, pipe)
+    else:
+        output, image_name = vanilla(args, control, pipe)
 
 
     image = image_grid([image.resize((256, 256)), control.resize((256, 256)),output.resize((256,256))], 1, 3, caption=image_name, options={"fill": (255, 255, 255)})
@@ -69,7 +118,7 @@ def main():
         pipe.unet.attn_maps,
         pipe.tokenizer,
         base_dir=f"log/attn_maps/{image_name}",
-        prompts=[prompt],
+        prompts=[args.prompt],
         options={
             "prefix": "",
             "return_dict": False,
