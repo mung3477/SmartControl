@@ -322,7 +322,8 @@ def ca_forward(self, mask_options: AlphaOptions):
                     "smartcntl_inferred": c,
                     "attn_inferred": attn_inferred_mask
                 },
-                use_fixed_mask=given_mask_options["fixed"]
+                use_fixed_mask=given_mask_options["fixed"],
+                ignore_cont=added_cond_kwargs["ignore_cont"]
             )
 
             # orig_sample = sample
@@ -470,7 +471,8 @@ def upblock2d_forward(self):
                     "smartcntl_inferred": c,
                     "attn_inferred": attn_inferred_mask
                 },
-                use_fixed_mask=given_mask_options["fixed"]
+                use_fixed_mask=given_mask_options["fixed"],
+                ignore_cont=ignore_cont
             )
             orig_res_hidden_states = res_hidden_states[:,:c_half]
             orig_hidden_states = torch.cat([hidden_states, orig_res_hidden_states], dim=1)
@@ -575,7 +577,8 @@ def crossattnupblock2d_forward(self):
                     "smartcntl_inferred": c,
                     "attn_inferred": attn_inferred_mask
                 },
-                use_fixed_mask=given_mask_options["fixed"]
+                use_fixed_mask=given_mask_options["fixed"],
+                ignore_cont=ignore_cont
             )
 
             # orig_res_hidden_states = res_hidden_states[:,:c_half]

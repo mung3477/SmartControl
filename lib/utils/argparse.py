@@ -1,12 +1,12 @@
 import argparse
 import warnings
 
-from controlnet_aux import CannyDetector, ZoeDetector
+from controlnet_aux import CannyDetector, OpenposeDetector, ZoeDetector
 from PIL import Image
 
 
 def make_ref_name(path: str) -> str:
-    return path.split("/")[-1].split(".")[0]
+	return path.split("/")[-1].split(".")[0]
 
 def make_img_name(args: argparse.Namespace) -> str:
 	prompt = args.prompt
@@ -88,14 +88,19 @@ def check_args(args: argparse.Namespace):
 
 
 def decide_cntl(args: argparse.Namespace):
-    if args.cntl == "depth":
-        args.smart_ckpt = "./depth.ckpt"
-        args.controlnet_path = "lllyasviel/control_v11f1p_sd15_depth"
-        args.preprocessor = ZoeDetector.from_pretrained(args.detector_path)
-    elif args.cntl == "canny":
-        args.smart_ckpt = "./canny.ckpt"
-        args.controlnet_path = "lllyasviel/control_v11p_sd15_canny"
-        args.preprocessor = CannyDetector()
+	if args.cntl == "depth":
+		args.smart_ckpt = "./depth.ckpt"
+		args.controlnet_path = "lllyasviel/control_v11f1p_sd15_depth"
+		args.preprocessor = ZoeDetector.from_pretrained(args.detector_path)
+	elif args.cntl == "canny":
+		args.smart_ckpt = "./canny.ckpt"
+		args.controlnet_path = "lllyasviel/control_v11p_sd15_canny"
+		args.preprocessor = CannyDetector()
+	elif args.cntl == "pose":
+		args.smart_ckpt = "./depth.ckpt" 	# any ckpt is Okay since we are not using smartcontrol for pose control case
+		args.controlnet_path = "lllyasviel/control_v11p_sd15_openpose"
+		args.preprocessor = OpenposeDetector.from_pretrained(args.detector_path)
+
 
 def parse_args():
 	parser = argparse.ArgumentParser(description="A brief description of your script")
