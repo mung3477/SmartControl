@@ -4,6 +4,8 @@ import warnings
 from controlnet_aux import CannyDetector, OpenposeDetector, ZoeDetector
 from PIL import Image
 
+from ..experiments import _check_edit_args, _SEGA_image_name
+
 
 def make_ref_name(path: str) -> str:
 	return path.split("/")[-1].split(".")[0]
@@ -13,7 +15,6 @@ def make_img_name(args: argparse.Namespace) -> str:
 	ref_name = make_ref_name(args.ref)
 	cntl_type = args.cntl
 	seed = args.seed
-
 
 	if args.alpha_attn_prev:
 			alpha_map = "prev-timestep"
@@ -38,13 +39,13 @@ def make_img_name(args: argparse.Namespace) -> str:
 
 	alternate = f"-alternate-{args.alternate}" if args.alternate else ""
 	stop_point = f"-stop-at-{args.stop_point}" if args.stop_point else ""
-
+	SEGA_suffix = _SEGA_image_name(args)
 
 	if args.ip is None:
-		return f"smartcontrol-{prompt}-{cntl_type}-{ref_name}-alpha-{alpha_map}-{alpha_calc}{alternate}{stop_point}-seed-{seed}"
+		return f"smartcontrol-{prompt}-{cntl_type}-{ref_name}-alpha-{alpha_map}-{alpha_calc}{alternate}{stop_point}-seed-{seed}{SEGA_suffix}"
 	else:
 		ip_name = make_ref_name(args.ip)
-		return f"IP-smartcontrol-{prompt}-{cntl_type}-{ref_name}-IP-{ip_name}-alpha-{alpha_map}-{alpha_calc}-seed-{seed}"
+		return f"IP-smartcontrol-{prompt}-{cntl_type}-{ref_name}-IP-{ip_name}-alpha-{alpha_map}-{alpha_calc}-seed-{seed}{SEGA_suffix}"
 
 def check_args(args: argparse.Namespace):
 	if args.alpha_attn_diff is True:
@@ -85,7 +86,7 @@ def check_args(args: argparse.Namespace):
 		if args.alpha_fixed is False:
 			warnings.warn("Current setting uses SmartControl on timestep 999.")
 
-
+	_check_edit_args(args)
 
 def decide_cntl(args: argparse.Namespace):
 	if args.cntl == "depth":
@@ -100,7 +101,6 @@ def decide_cntl(args: argparse.Namespace):
 		args.smart_ckpt = "./depth.ckpt" 	# any ckpt is Okay since we are not using smartcontrol for pose control case
 		args.controlnet_path = "lllyasviel/control_v11p_sd15_openpose"
 		args.preprocessor = OpenposeDetector.from_pretrained(args.detector_path)
-
 
 def parse_args():
 	parser = argparse.ArgumentParser(description="A brief description of your script")
@@ -122,6 +122,15 @@ def parse_args():
 	parser.add_argument('--ignore_special_tkns', action='store_true', default=False, help="Whether to ignore <sot> and <eot> while calculating cross attention differences")
 	parser.add_argument('--ref', type=str, help="A path to an image that will be used as a control", required=True)
 	parser.add_argument('--ip', type=str, default=None, help="A path to an image that will be used as an image prompt")
+
+	parser.add_argument('--editing_prompt', type=str, nargs="*", default=None, help="prompts that corresponds to desired semantic latents")
+	parser.add_argument('--reverse_edit_direction', type=int, nargs="*", default=None)
+	parser.add_argument('--edit_warmup_steps', type=int, nargs="*", default=None)
+	parser.add_argument('--edit_guidance_scale', type=float, nargs="*", default=None)
+	parser.add_argument('--edit_threshold', type=float, nargs="*", default=None)
+	parser.add_argument('--edit_weights', type=float, nargs="*", default=None)
+	parser.add_argument('--edit_mom_scale', type=float, default=0.3)
+	parser.add_argument('--edit_mom_beta', type=float, default=0.6)
 
 	args = parser.parse_args()
 	check_args(args)

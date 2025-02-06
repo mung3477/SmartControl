@@ -13,16 +13,16 @@ class Action(TypedDict):
 	control: str
 
 actions: List[Action] = [{
-	"prompt": "A {subject} riding a bicycle",
-	"mask_prompt": "A man riding a bicycle",
-	"focus_prompt": "riding",
-	"reference": "riding a bike.png",
-	"control": "pose"
-},{
 	"prompt": "A {subject} doing deadlift",
 	"mask_prompt": "A man doing deadlift",
 	"focus_prompt": "deadlift",
 	"reference": "doing deadlift.png",
+	"control": "pose"
+},{
+	"prompt": "A {subject} riding a bicycle",
+	"mask_prompt": "A man riding a bicycle",
+	"focus_prompt": "riding",
+	"reference": "riding a bike.png",
 	"control": "pose"
 },{
 	"prompt": "A {subject} doing bicycle kick",
@@ -100,7 +100,7 @@ actions: List[Action] = [{
 
 def inference_loop(mode: str, CUDA_VISIBLE_DEVICES: str):
 	for subject in subjects:
-		for action in actions:
+		for action in actions[:1]:
 			if mode == "Mine":
 				os.system(f'CUDA_VISIBLE_DEVICES="{CUDA_VISIBLE_DEVICES}" python3 smartcontrol_demo.py \
 									--prompt="{action["prompt"].format(subject=subject)}" \
@@ -112,7 +112,14 @@ def inference_loop(mode: str, CUDA_VISIBLE_DEVICES: str):
 									--alpha_mask=1 \
 									--alpha_attn_prev \
 									--alpha_fixed \
-									--ignore_special_tkns')
+									--ignore_special_tkns \
+									--editing_prompt "human" "dog" \
+									--reverse_edit_direction 1 0 \
+									--edit_warmup_steps 10 10 \
+									--edit_guidance_scale 5 5 \
+									--edit_threshold 0.975 0.975 \
+									--edit_weights 2 1 \
+				')
 
 			elif mode == "SmartControl":
 				os.system(f'CUDA_VISIBLE_DEVICES="{CUDA_VISIBLE_DEVICES}" python3 smartcontrol_demo.py \

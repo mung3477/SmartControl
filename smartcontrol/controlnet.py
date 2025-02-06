@@ -1,4 +1,4 @@
-import copy
+from itertools import repeat
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -23,8 +23,9 @@ from torchvision.transforms import ToPILImage
 from transformers import (CLIPImageProcessor, CLIPTextModel, CLIPTokenizer,
                           CLIPVisionModelWithProjection)
 
-from lib import (COND_BLOCKS, AttnSaveOptions, agg_by_blocks, assert_path,
-                 default_option, save_attention_maps,
+from lib import (COND_BLOCKS, AttnSaveOptions, EditGuidance,
+                 SemanticStableDiffusionPipelineArgs, agg_by_blocks,
+                 assert_path, default_option, save_attention_maps,
                  tokenize_and_mark_prompts)
 
 from .types import AttnDiffTrgtTokens
@@ -84,7 +85,6 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 
 		# if self.ignore_special_tkns:
 		# 	cross_attention_kwargs['token_last_idx'] = last_idx
-
 		down_block_res_samples, mid_block_res_sample = self.controlnet(
 			sample,
 			timestep,
@@ -206,7 +206,6 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		ip_adapter_image: Optional[PipelineImageInput] = None,
 		output_type: Optional[str] = "pil",
 		return_dict: bool = True,
-		use_attn_diff: bool = False,
 		focus_prompt: Optional[Union[str, List[str]]] = None,
 		cross_attention_kwargs: Optional[Dict[str, Any]] = None,
 		controlnet_conditioning_scale: Union[float, List[float]] = 1.0,
@@ -216,6 +215,8 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		clip_skip: Optional[int] = None,
 		callback_on_step_end: Optional[Callable[[int, int, Dict], None]] = None,
 		callback_on_step_end_tensor_inputs: List[str] = ["latents"],
+
+		edit_args: Optional[SemanticStableDiffusionPipelineArgs] = None,
 		**kwargs,
 	):
 		r"""
@@ -401,11 +402,24 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			clip_skip=self.clip_skip,
 		)
 
+		if edit_args is not None:
+			edit_concepts, _ = self.encode_prompt(
+				[x for item in edit_args.editing_prompt for x in repeat(item, batch_size)],
+				device,
+				num_images_per_prompt,
+				False,
+				lora_scale=text_encoder_lora_scale,
+				clip_skip=self.clip_skip,
+			)
+
 		# For classifier free guidance, we need to do two forward passes.
 		# Here we concatenate the unconditional and text embeddings into a single batch
 		# to avoid doing two forward passes
 		if self.do_classifier_free_guidance:
-			prompt_embeds = torch.cat([negative_prompt_embeds, prompt_embeds])
+			if edit_args is not None:
+				prompt_embeds = torch.cat([negative_prompt_embeds, prompt_embeds, edit_concepts])
+			else:
+				prompt_embeds = torch.cat([negative_prompt_embeds, prompt_embeds])
 
 		if ip_adapter_image is not None:
 			output_hidden_state = False if isinstance(self.unet.encoder_hid_proj, ImageProjection) else True
@@ -427,6 +441,8 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 				dtype=controlnet.dtype,
 				do_classifier_free_guidance=self.do_classifier_free_guidance,
 				guess_mode=guess_mode,
+
+				enabled_editing_prompts=0 if edit_args is None else edit_args.enabled_editing_prompts
 			)
 			height, width = image.shape[-2:]
 		elif isinstance(controlnet, MultiControlNetModel):
@@ -443,6 +459,8 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					dtype=controlnet.dtype,
 					do_classifier_free_guidance=self.do_classifier_free_guidance,
 					guess_mode=guess_mode,
+
+					enabled_editing_prompts=0 if edit_args is None else edit_args.enabled_editing_prompts
 				)
 
 				images.append(image_)
@@ -498,6 +516,10 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		is_unet_compiled = is_compiled_module(self.unet)
 		is_controlnet_compiled = is_compiled_module(self.controlnet)
 		is_torch_higher_equal_2_1 = is_torch_version(">=", "2.1")
+
+		if edit_args is not None:
+			edit_guidance = EditGuidance(device, edit_args)
+
 		with self.progress_bar(total=num_inference_steps) as progress_bar:
 			for i, t in enumerate(timesteps):
 
@@ -512,7 +534,8 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 				if (is_unet_compiled and is_controlnet_compiled) and is_torch_higher_equal_2_1:
 					torch._inductor.cudagraph_mark_step_begin()
 				# expand the latents if we are doing classifier free guidance
-				latent_model_input = torch.cat([latents] * 2) if self.do_classifier_free_guidance else latents
+				latent_dup_num = 2 if edit_args is None else 2 + edit_args.enabled_editing_prompts
+				latent_model_input = torch.cat([latents] * latent_dup_num) if self.do_classifier_free_guidance else latents
 				latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
 
 				# controlnet(s) inference
@@ -602,7 +625,8 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 						cross_attention_kwargs = {'token_last_idx': last_idx}
 					else:
 						cross_attention_kwargs['token_last_idx'] = last_idx
-
+				# if edit_args is not None:
+				# 	import pudb; pudb.set_trace()
 				# predict the noise residual
 				noise_pred = self.unet(
 					latent_model_input,
@@ -620,8 +644,15 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 
 				# perform guidance
 				if self.do_classifier_free_guidance:
-					noise_pred_uncond, noise_pred_text = noise_pred.chunk(2)
-					noise_pred = noise_pred_uncond + self.guidance_scale * (noise_pred_text - noise_pred_uncond)
+					noise_pred_uncond, noise_pred_text, *noise_pred_edit_concepts = noise_pred.chunk(latent_dup_num)
+					noise_pred_edit_concepts = None if len(noise_pred_edit_concepts) == 0 else noise_pred_edit_concepts[0]
+					noise_guidance = self.guidance_scale * (noise_pred_text - noise_pred_uncond)
+
+					if edit_args is not None and edit_args.enable_edit_guidance:
+						edit_guidance.init_components(num_inference_steps, noise_pred_edit_concepts, noise_pred_text, noise_guidance)
+						edit_guidance.calc_guidance(infer_step=i, noise_pred_edit_concepts=noise_pred_edit_concepts, noise_pred_uncond=noise_pred_uncond, noise_guidance=noise_guidance)
+
+					noise_pred = noise_pred_uncond + noise_guidance
 
 				# compute the previous noisy sample x_t -> x_t-1
 				latents = self.scheduler.step(noise_pred, t, latents, **extra_step_kwargs, return_dict=False)[0]

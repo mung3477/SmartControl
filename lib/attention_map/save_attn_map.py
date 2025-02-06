@@ -1,5 +1,5 @@
 import os
-from typing import TypedDict, List
+from typing import List, TypedDict
 
 import torch
 import torch.nn.functional as F
@@ -13,11 +13,13 @@ class AttnSaveOptions(TypedDict):
 	prefix: str = ""
 	return_dict: bool = False
 	ignore_special_tkns: bool = True
+	enabled_editing_prompts: int = 0
 
 default_option: AttnSaveOptions = {
 	'prefix': "",
 	'return_dict': False,
-	'ignore_special_tkns': True
+	'ignore_special_tkns': True,
+	'enabled_editing_prompts': 0
 }
 
 def tokenize_prompts(prompts: List[str], tokenizer: CLIPTokenizer, ignore_special_tokens: bool):

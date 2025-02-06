@@ -572,6 +572,7 @@ def BasicTransformerBlockForward(
 			attention_mask=encoder_attention_mask,
 			**cross_attention_kwargs,
 		)
+
 		hidden_states = attn_output + hidden_states
 
 	# 4. Feed-forward

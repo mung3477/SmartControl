@@ -34,7 +34,8 @@ def use_prev_t_attn(args, control, pipe):
         options={
             "prefix": "",
             "return_dict": False,
-            "ignore_special_tkns": args.ignore_special_tkns
+            "ignore_special_tkns": args.ignore_special_tkns,
+            "enabled_editing_prompts": args.edit_args.enabled_editing_prompts
         })
 
     register_unet(
@@ -46,6 +47,7 @@ def use_prev_t_attn(args, control, pipe):
         },
         reset_masks=False
     )
+
     output = pipe(
         prompt=args.prompt,
         mask_prompt=args.cond_prompt,
@@ -54,7 +56,8 @@ def use_prev_t_attn(args, control, pipe):
         # negative_prompt=negative_prompt_path,
         controlnet_conditioning_scale = args.controlnet_conditioning_scale,
         output_name = image_name,
-        prepare_phase=False
+        prepare_phase=False,
+        edit_args=args.edit_args
     ).images[0]
 
     return output, image_name
@@ -67,6 +70,7 @@ def vanilla(args, control, pipe):
         # negative_prompt=negative_prompt_path,
         controlnet_conditioning_scale = args.controlnet_conditioning_scale,
         output_name = image_name,
+        edit_args=args.edit_args
     ).images[0]
 
     return output, image_name
@@ -122,7 +126,8 @@ def main():
         options={
             "prefix": "",
             "return_dict": False,
-            "ignore_special_tkns": args.ignore_special_tkns
+            "ignore_special_tkns": args.ignore_special_tkns,
+            "enabled_editing_prompts": args.edit_args.enabled_editing_prompts
         })
     save_alpha_masks(pipe.unet.alpha_masks, f'log/alpha_masks/{image_name}')
 
