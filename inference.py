@@ -13,6 +13,12 @@ class Action(TypedDict):
 	control: str
 
 actions: List[Action] = [{
+	"prompt": "A {subject} doing handstand exercise",
+	"mask_prompt": "A woman doing handstand exercise",
+	"focus_prompt": "handstand exercise",
+	"reference": "Handstand.jpg",
+	"control": "pose"
+},{
 	"prompt": "A {subject} doing deadlift",
 	"mask_prompt": "A man doing deadlift",
 	"focus_prompt": "deadlift",
@@ -53,12 +59,6 @@ actions: List[Action] = [{
 	"mask_prompt": "A man holding a guitar",
 	"focus_prompt": "holding",
 	"reference": "Guitar.jpg",
-	"control": "pose"
-},{
-	"prompt": "A {subject} doing handstand excercise",
-	"mask_prompt": "A woman doing handstand excercise",
-	"focus_prompt": "handstand exercise",
-	"reference": "Handstand.jpg",
 	"control": "pose"
 },{
 	"prompt": "A {subject} doing meditation",
@@ -112,13 +112,14 @@ def inference_loop(mode: str, CUDA_VISIBLE_DEVICES: str):
 									--alpha_mask=1 \
 									--alpha_attn_prev \
 									--alpha_fixed \
+									--save_attn \
 									--ignore_special_tkns \
 									--editing_prompt "human" "dog" \
 									--reverse_edit_direction 1 0 \
 									--edit_warmup_steps 10 10 \
 									--edit_guidance_scale 5 5 \
 									--edit_threshold 0.975 0.975 \
-									--edit_weights 2 1 \
+									--edit_weights 1 1 \
 				')
 
 			elif mode == "SmartControl":

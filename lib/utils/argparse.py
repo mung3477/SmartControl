@@ -110,6 +110,7 @@ def parse_args():
 	parser.add_argument('--alpha_attn_diff', action='store_true', default=False, help="Whether to calculate alpha with differences btw two cross attentions on generate prompt and condition prompt.")
 	parser.add_argument('--attn_diff_threshold', type=float, default=0.0)
 	parser.add_argument('--alpha_attn_prev', action='store_true', default=False, help="Whether to use previous timestep's attention map as an alpha mask.")
+	parser.add_argument('--save_attn', action='store_true', default=False)
 	parser.add_argument('--alternate', action='store_true', default=False, help="Alternate condition usage")
 	parser.add_argument('--stop_point', type=int, default=0, help="Early stop timestep")
 	parser.add_argument('--cntl', type=str, default="depth", help="Type of condition. (default: depth map)")

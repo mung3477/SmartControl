@@ -55,6 +55,6 @@ def compare_latent(l1_path: str, l2_path: str):
     print(f"Cosine similarity between tensors: {similarity.mean().item()}")
 
 # Example usage:
-visualize_unet_similarities('./similarity.csv', "UNetMidBlock2DCrossAttn")
-# compare_latent("./final_latent_ControlNet", "./final_latent_smartControl")
+# visualize_unet_similarities('./similarity.csv', "UNetMidBlock2DCrossAttn")
+compare_latent("./log/latents/final_latent_AttnDiff.pt", "./log/latents/final_latent_SEGA.pt")
 

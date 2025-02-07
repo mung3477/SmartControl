@@ -650,7 +650,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 
 					if edit_args is not None and edit_args.enable_edit_guidance:
 						edit_guidance.init_components(num_inference_steps, noise_pred_edit_concepts, noise_pred_text, noise_guidance)
-						edit_guidance.calc_guidance(infer_step=i, noise_pred_edit_concepts=noise_pred_edit_concepts, noise_pred_uncond=noise_pred_uncond, noise_guidance=noise_guidance)
+						noise_guidance = edit_guidance.calc_guidance(infer_step=i, noise_pred_edit_concepts=noise_pred_edit_concepts, noise_pred_uncond=noise_pred_uncond, noise_guidance=noise_guidance)
 
 					noise_pred = noise_pred_uncond + noise_guidance
 

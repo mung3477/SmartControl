@@ -63,6 +63,7 @@ def tokenize_and_mark_prompts(prompts: List[str], tokenizer: CLIPTokenizer, igno
 def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps', unconditional=True, options: AttnSaveOptions = default_option):
 	to_pil = ToPILImage()
 
+	bsz = options["enabled_editing_prompts"] + int(unconditional) + 1
 	total_marked_tokens = tokenize_and_mark_prompts(prompts=prompts, tokenizer=tokenizer, ignore_special_tokens=options["ignore_special_tkns"])
 	organized_attn_maps = {}
 
@@ -70,7 +71,7 @@ def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps',
 
 	total_attn_map = list(list(attn_maps.values())[0].values())[0].sum(1) # If we use AttnProcessor2.0, batch attn_head h w attn_dim -> batch h w attn_dim
 	if unconditional:
-		total_attn_map = total_attn_map.chunk(2)[1]  # (batch, height, width, attn_dim)
+		total_attn_map = total_attn_map.chunk(bsz)[1]  # (batch, height, width, attn_dim)
 	total_attn_map = total_attn_map.permute(0, 3, 1, 2)
 	total_attn_map = torch.zeros_like(total_attn_map)
 	total_attn_map_shape = total_attn_map.shape[-2:]
@@ -88,7 +89,7 @@ def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps',
 			attn_map = attn_map.permute(0, 3, 1, 2)
 
 			if unconditional:
-				attn_map = attn_map.chunk(2)[1]
+				attn_map = attn_map.chunk(bsz)[1]
 
 			resized_attn_map = F.interpolate(attn_map, size=total_attn_map_shape, mode='bilinear', align_corners=False)
 			total_attn_map += resized_attn_map

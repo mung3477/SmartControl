@@ -35,7 +35,7 @@ def use_prev_t_attn(args, control, pipe):
             "prefix": "",
             "return_dict": False,
             "ignore_special_tkns": args.ignore_special_tkns,
-            "enabled_editing_prompts": args.edit_args.enabled_editing_prompts
+            "enabled_editing_prompts": 0 if args.edit_args is None else args.edit_args.enabled_editing_prompts
         })
 
     register_unet(
@@ -118,18 +118,19 @@ def main():
     image.save(f"output/vanilla/{image_name}.png")
     print(f"Saved at ./output/vanilla/{image_name}.png!")
 
-    save_attention_maps(
-        pipe.unet.attn_maps,
-        pipe.tokenizer,
-        base_dir=f"log/attn_maps/{image_name}",
-        prompts=[args.prompt],
-        options={
-            "prefix": "",
-            "return_dict": False,
-            "ignore_special_tkns": args.ignore_special_tkns,
-            "enabled_editing_prompts": args.edit_args.enabled_editing_prompts
-        })
-    save_alpha_masks(pipe.unet.alpha_masks, f'log/alpha_masks/{image_name}')
+    if args.save_attn:
+        save_attention_maps(
+            pipe.unet.attn_maps,
+            pipe.tokenizer,
+            base_dir=f"log/attn_maps/{image_name}",
+            prompts=[args.prompt],
+            options={
+                "prefix": "",
+                "return_dict": False,
+                "ignore_special_tkns": args.ignore_special_tkns,
+                "enabled_editing_prompts": 0 if args.edit_args is None else args.edit_args.enabled_editing_prompts
+            })
+        save_alpha_masks(pipe.unet.alpha_masks, f'log/alpha_masks/{image_name}')
 
 if __name__ == "__main__":
     main()

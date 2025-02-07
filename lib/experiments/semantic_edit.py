@@ -168,13 +168,18 @@ class EditGuidance:
 
 		self.edit_momentum = self.edit_args.edit_mom_beta * self.edit_momentum + (1 - self.edit_args.edit_mom_beta) * self.noise_guidance_edit
 
+		import pudb; pudb.set_trace()
 		if warmup_inds.shape[0] == len(noise_pred_edit_concepts):
 			noise_guidance = noise_guidance + self.noise_guidance_edit
 			self.sem_guidance[infer_step] = self.noise_guidance_edit.detach().cpu()
 
+		return noise_guidance
+
 
 def _check_edit_args(args: argparse.Namespace):
-	if args.editing_prompt is not None:
+	if args.editing_prompt is None:
+		args.edit_args = None
+	else:
 		args.edit_args = SemanticStableDiffusionPipelineArgs(
 			editing_prompt=args.editing_prompt,
 			reverse_edit_direction=args.reverse_edit_direction,
