@@ -42,7 +42,7 @@ def make_img_name(args: argparse.Namespace) -> str:
 	SEGA_suffix = _SEGA_image_name(args)
 
 	if args.ip is None:
-		return f"smartcontrol-{prompt}-{cntl_type}-{ref_name}-alpha-{alpha_map}-{alpha_calc}{alternate}{stop_point}-seed-{seed}{SEGA_suffix}"
+		return f"smartcontrol-{prompt}-{cntl_type}-{ref_name}-alpha-{alpha_map}-{alpha_calc}{alternate}{stop_point}normalized-seed-{seed}{SEGA_suffix}"
 	else:
 		ip_name = make_ref_name(args.ip)
 		return f"IP-smartcontrol-{prompt}-{cntl_type}-{ref_name}-IP-{ip_name}-alpha-{alpha_map}-{alpha_calc}-seed-{seed}{SEGA_suffix}"

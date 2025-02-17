@@ -1,5 +1,6 @@
 import os
 
+import numpy as np
 import torch
 from torch import Size, Tensor
 from torch.nn import Module
@@ -53,6 +54,7 @@ def save_alpha_masks(alpha_masks: dict, base_dir='log/alpha_masks', unconditiona
 				assert_path(batch_dir)
 
 				to_pil(mask.to(torch.float32)).save(os.path.join(batch_dir, f"alpha_mask.png"))
+				np.savetxt(os.path.join(batch_dir, f"alpha_mask.txt"), mask.to(torch.float32).squeeze().numpy(), fmt="%.4f")
 
 	total_alpha_mask /= total_alpha_mask_num
 	for batch, mask in enumerate(total_alpha_mask):
@@ -60,6 +62,7 @@ def save_alpha_masks(alpha_masks: dict, base_dir='log/alpha_masks', unconditiona
 		assert_path(batch_dir)
 
 		to_pil(mask.to(torch.float32)).save(os.path.join(batch_dir, f"alpha_mask.png"))
+		np.savetxt(os.path.join(batch_dir, f"alpha_mask.txt"), mask.to(torch.float32).squeeze().numpy(), fmt="%.4f")
 
 
 def store_alpha_mask(module: Module, module_name: str, store_loc: dict, detach=True):

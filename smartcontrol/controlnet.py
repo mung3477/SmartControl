@@ -625,8 +625,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 						cross_attention_kwargs = {'token_last_idx': last_idx}
 					else:
 						cross_attention_kwargs['token_last_idx'] = last_idx
-				# if edit_args is not None:
-				# 	import pudb; pudb.set_trace()
+
 				# predict the noise residual
 				noise_pred = self.unet(
 					latent_model_input,
@@ -649,7 +648,6 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					noise_guidance = self.guidance_scale * (noise_pred_text - noise_pred_uncond)
 
 					if edit_args is not None and edit_args.enable_edit_guidance:
-						import pudb; pudb.set_trace()
 						edit_guidance.init_components(num_inference_steps, noise_pred_edit_concepts, noise_pred_text, noise_guidance)
 						noise_guidance = edit_guidance.calc_guidance(infer_step=i, noise_pred_edit_concepts=noise_pred_edit_concepts, noise_pred_uncond=noise_pred_uncond, noise_guidance=noise_guidance)
 

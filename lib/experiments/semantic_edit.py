@@ -168,7 +168,6 @@ class EditGuidance:
 
 		self.edit_momentum = self.edit_args.edit_mom_beta * self.edit_momentum + (1 - self.edit_args.edit_mom_beta) * self.noise_guidance_edit
 
-		import pudb; pudb.set_trace()
 		if warmup_inds.shape[0] == len(noise_pred_edit_concepts):
 			noise_guidance = noise_guidance + self.noise_guidance_edit
 			self.sem_guidance[infer_step] = self.noise_guidance_edit.detach().cpu()
@@ -180,6 +179,13 @@ def _check_edit_args(args: argparse.Namespace):
 	if args.editing_prompt is None:
 		args.edit_args = None
 	else:
+		edit_num = len(args.editing_prompt)
+		assert len(args.reverse_edit_direction) == edit_num, f"You are using {edit_num} edit prompts, but you gave {len(args.reverse_edit_direction)} reverse_edit_direction"
+		assert len(args.edit_warmup_steps) == edit_num, f"You are using {edit_num} edit prompts, but you gave {len(args.edit_warmup_steps)} edit_warmup_steps"
+		assert len(args.edit_guidance_scale) == edit_num, f"You are using {edit_num} edit prompts, but you gave {len(args.edit_guidance_scale)} edit_guidance_scale"
+		assert len(args.edit_threshold) == edit_num, f"You are using {edit_num} edit prompts, but you gave {len(args.edit_threshold)} edit_threshold"
+		assert len(args.edit_weights) == edit_num, f"You are using {edit_num} edit prompts, but you gave {len(args.edit_weights)} edit_weights"
+
 		args.edit_args = SemanticStableDiffusionPipelineArgs(
 			editing_prompt=args.editing_prompt,
 			reverse_edit_direction=args.reverse_edit_direction,
@@ -191,6 +197,8 @@ def _check_edit_args(args: argparse.Namespace):
 			edit_mom_beta=args.edit_mom_beta
 		)
 		args.edit_args.init_call_params()
+
+
 
 def _SEGA_image_name(args: argparse.Namespace):
 	suffix = ""
