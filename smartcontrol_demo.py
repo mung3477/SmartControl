@@ -24,8 +24,10 @@ def use_prev_t_attn(args, control, pipe):
         # negative_prompt=negative_prompt_path,
         controlnet_conditioning_scale = args.controlnet_conditioning_scale,
         output_name = image_name,
-        prepare_phase=True
+        prepare_phase=True,
+        edit_args=args.edit_args
     )
+
     save_attention_maps(
         pipe.unet.attn_maps,
         pipe.tokenizer,
@@ -56,8 +58,7 @@ def use_prev_t_attn(args, control, pipe):
         # negative_prompt=negative_prompt_path,
         controlnet_conditioning_scale = args.controlnet_conditioning_scale,
         output_name = image_name,
-        prepare_phase=False,
-        edit_args=args.edit_args
+        prepare_phase=False
     ).images[0]
 
     return output, image_name

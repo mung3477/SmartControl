@@ -77,7 +77,12 @@ def choose_alpha_mask(masks: Masks, use_fixed_mask=False, ignore_cont=False, bsz
 	if ignore_cont:
 		return 0 * masks["smartcntl_inferred"]
 	if masks["attn_inferred"] is not None:
-		return masks["user_given"] * masks["attn_inferred"].unsqueeze(0).unsqueeze(0).repeat(bsz, 1, 1, 1)
+		return masks["attn_inferred"].unsqueeze(0).unsqueeze(0).repeat(bsz, 1, 1, 1)
 	if use_fixed_mask:
-		return masks["user_given"].unsqueeze(0).unsqueeze(0).repeat(bsz, 1, 1, 1)
+		if bsz == 2:
+			return masks["user_given"].unsqueeze(0).unsqueeze(0).repeat(bsz, 1, 1, 1)
+
+		control_mask = masks["user_given"].unsqueeze(0).unsqueeze(0).repeat(int(bsz / 2), 1, 1, 1)
+		zero_mask = torch.zeros_like(control_mask)
+		return torch.concat([control_mask, zero_mask], dim=0)
 	return masks["user_given"] * masks["smartcntl_inferred"]

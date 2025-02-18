@@ -315,6 +315,8 @@ def ca_forward(self, mask_options: AlphaOptions):
             attn_inferred_mask = None
             if prev_t_attns is not None:
                 attn_inferred_mask = prev_t_attns["mid_block"][0].to(self.device)
+                if timestep.item() in self.alphas.keys():
+                    attn_inferred_mask *= self.alphas[timestep.item()]
 
             c = choose_alpha_mask(
                 masks={
@@ -326,6 +328,7 @@ def ca_forward(self, mask_options: AlphaOptions):
                 ignore_cont=added_cond_kwargs["ignore_cont"],
                 bsz=sample.shape[0]
             )
+            print(c)
 
             # orig_sample = sample
             sample = sample + c * mid_block_additional_residual
@@ -361,7 +364,8 @@ def ca_forward(self, mask_options: AlphaOptions):
                 attn_inferred_mask = None
                 if prev_t_attns is not None:
                     attn_inferred_mask = prev_t_attns["up_blocks"][i].to(self.device)
-
+                    if timestep.item() in self.alphas.keys():
+                        attn_inferred_mask *= self.alphas[timestep.item()]
 
                 sample = upsample_block(
                     hidden_states=sample,
@@ -387,6 +391,8 @@ def ca_forward(self, mask_options: AlphaOptions):
                 attn_inferred_mask = None
                 if prev_t_attns is not None:
                     attn_inferred_mask = prev_t_attns["mid_block"][0].to(self.device)
+                    if timestep.item() in self.alphas.keys():
+                        attn_inferred_mask *= self.alphas[timestep.item()]
 
                 sample = upsample_block(
                     hidden_states=sample,

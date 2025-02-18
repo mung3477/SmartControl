@@ -61,6 +61,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		)
 		# self.diff_threshold = diff_threshold
 		self.options = options
+		self.unet.alphas = {}
 
 	def control_branch_forward(
 		self,
@@ -641,6 +642,13 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					return_dict=False,
 				)[0]
 
+				if "prepare_phase" in kwargs and kwargs["prepare_phase"] is True:
+					noise_pred_uncond, noise_pred_text, *noise_pred_edit_concepts = noise_pred.chunk(latent_dup_num)
+
+					subject_conflict_degree = noise_pred_edit_concepts[0] - noise_pred_edit_concepts[1]
+					subject_conflict_degree = (subject_conflict_degree ** 2).mean()
+					self.unet.alphas[t.item()] = 0.5 - 10 * subject_conflict_degree
+
 				# perform guidance
 				if self.do_classifier_free_guidance:
 					noise_pred_uncond, noise_pred_text, *noise_pred_edit_concepts = noise_pred.chunk(latent_dup_num)
@@ -681,6 +689,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			torch.cuda.empty_cache()
 
 		torch.save(latents, "./log/latents/final_latent.pt")
+
 		if not output_type == "latent":
 			image = self.vae.decode(latents / self.vae.config.scaling_factor, return_dict=False, generator=generator)[
 				0

@@ -18,29 +18,25 @@ actions: List[Action] = [{
 	"mask_prompt": "A man playing a trumpet",
 	"focus_prompt": "playing trumpet",
 	"reference": "Trumpet.png",
-	"control": "depth",
-	"alpha_mask": 0.2
+	"control": "depth"
 },{
 	"prompt": "A {subject} doing handstand exercise",
 	"mask_prompt": "A woman doing handstand exercise",
-	"focus_prompt": "doing yoga",
+	"focus_prompt": "doing handstand",
 	"reference": "Handstand.jpg",
-	"control": "depth",
-	"alpha_mask": 0.4
+	"control": "depth"
 },{
 	"prompt": "A {subject} doing deadlift",
 	"mask_prompt": "A man doing deadlift",
 	"focus_prompt": "deadlift",
 	"reference": "doing deadlift.png",
-	"control": "pose",
-	'alpha_mask': 0.4
+	"control": "pose"
 },{
 	"prompt": "A {subject} riding a bicycle",
 	"mask_prompt": "A man riding a bicycle",
 	"focus_prompt": "riding bicycle",
 	"reference": "riding a bike.png",
-	"control": "pose",
-	"alpha_mask": 0.5
+	"control": "pose"
 },{
 	"prompt": "A {subject} with both arms gesture",
 	"mask_prompt": "A man with both arms gesture",
@@ -78,10 +74,17 @@ def inference_loop(mode: str, CUDA_VISIBLE_DEVICES: str):
 									--ref="{action["reference"]}" \
 									--cntl="{action["control"]}" \
 									--seed=12345 \
-									--alpha_mask=0.2 \
+									--save_attn \
+									--alpha_mask=1 \
 									--alpha_attn_prev \
 									--alpha_fixed \
 									--ignore_special_tkns \
+									--editing_prompt "dog" "man" \
+									--reverse_edit_direction 0 0 \
+									--edit_warmup_steps 10 10 \
+									--edit_guidance_scale 5 5 \
+									--edit_threshold 0.90 0.90 \
+									--edit_weights 1 1 \
 				')
 
 			elif mode == "SmartControl":
