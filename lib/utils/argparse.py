@@ -5,6 +5,7 @@ from controlnet_aux import CannyDetector, OpenposeDetector, ZoeDetector
 from PIL import Image
 
 from ..experiments import _check_edit_args, _SEGA_image_name
+from ..attention_map import agg_mode_str2enum, stringfy_agg_mode
 
 
 def make_ref_name(path: str) -> str:
@@ -42,7 +43,7 @@ def make_img_name(args: argparse.Namespace) -> str:
 	SEGA_suffix = _SEGA_image_name(args)
 
 	if args.ip is None:
-		return f"smartcontrol-{prompt}-{cntl_type}-{ref_name}-alpha-{alpha_map}-{alpha_calc}{alternate}{stop_point}-seed-{seed}{SEGA_suffix}"
+		return f"smartcontrol-{prompt}-{cntl_type}-{ref_name}-alpha-{alpha_map}-{alpha_calc}{alternate}{stop_point}{stringfy_agg_mode(args.attn_agg_mode)}-seed-{seed}{SEGA_suffix}"
 	else:
 		ip_name = make_ref_name(args.ip)
 		return f"IP-smartcontrol-{prompt}-{cntl_type}-{ref_name}-IP-{ip_name}-alpha-{alpha_map}-{alpha_calc}-seed-{seed}{SEGA_suffix}"
@@ -86,6 +87,8 @@ def check_args(args: argparse.Namespace):
 		if args.alpha_fixed is False:
 			warnings.warn("Current setting uses SmartControl on timestep 999.")
 
+		args.attn_agg_mode = agg_mode_str2enum(args.attn_agg_mode)
+
 	_check_edit_args(args)
 
 def decide_cntl(args: argparse.Namespace):
@@ -111,6 +114,7 @@ def parse_args():
 	parser.add_argument('--alpha_attn_diff', action='store_true', default=False, help="Whether to calculate alpha with differences btw two cross attentions on generate prompt and condition prompt.")
 	parser.add_argument('--attn_diff_threshold', type=float, default=0.0)
 	parser.add_argument('--alpha_attn_prev', action='store_true', default=False, help="Whether to use previous timestep's attention map as an alpha mask.")
+	parser.add_argument('--attn_agg_mode', type=str, default="mean")
 	parser.add_argument('--save_attn', action='store_true', default=False)
 	parser.add_argument('--alternate', action='store_true', default=False, help="Alternate condition usage")
 	parser.add_argument('--stop_point', type=int, default=0, help="Early stop timestep")

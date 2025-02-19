@@ -1,8 +1,14 @@
 import copy
 from typing import Dict, List
+from enum import Enum
 
 import numpy as np
 import torch
+
+class AggMode(Enum):
+	Mean = 1
+	Norm = 2
+
 
 
 def _aggregate(attns: Dict[str, torch.Tensor], focus_indexes: List[int]) -> Dict[str, torch.Tensor]:
@@ -39,6 +45,10 @@ def _average(agg_res: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
 	for block, CAs in agg_res.items():
 		for block_num, attn in CAs.items():
 			assert isinstance(attn, torch.Tensor), "aggregation should return a dictionary who has a tensor as value"
+			# mean multiple focus token's attention values
+			attn = attn.mean(dim=1)
+
+			# mean multiple attention operators' results
 			agg[block][block_num] = attn.mean(dim=0)
 
 	return agg
@@ -67,9 +77,24 @@ def _normalize(agg_res: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
 
 	return agg
 
-def agg_by_blocks(attns: Dict[str, torch.Tensor], focus_indexes: List[int]):
+def _get_aggregation_function(agg_mode: AggMode):
+	if agg_mode == AggMode.Mean:
+		return _average
+	elif agg_mode == AggMode.Norm:
+		return _normalize
+
+def agg_by_blocks(attns: Dict[str, torch.Tensor], focus_indexes: List[int], agg_mode: AggMode = AggMode.Mean):
 	agg = _aggregate(attns, focus_indexes)
+	post_process = _get_aggregation_function(agg_mode)
+	return post_process(agg)
 
-	return _normalize(agg)
+def agg_mode_str2enum(agg_mode: str):
+	if agg_mode == "norm":
+		return AggMode.Norm
+	return AggMode.Mean
 
-
+def stringfy_agg_mode(agg_mode: AggMode):
+    if agg_mode == AggMode.Mean:
+        return ""
+    elif agg_mode == AggMode.Norm:
+        return "normalized"

@@ -65,7 +65,7 @@ actions: List[Action] = [{
 
 def inference_loop(mode: str, CUDA_VISIBLE_DEVICES: str):
 	for subject in subjects:
-		for action in actions:
+		for action in actions[:1]:
 			if mode == "Mine":
 				os.system(f'CUDA_VISIBLE_DEVICES="{CUDA_VISIBLE_DEVICES}" python3 smartcontrol_demo.py \
 									--prompt="{action["prompt"].format(subject=subject)}" \
@@ -79,12 +79,6 @@ def inference_loop(mode: str, CUDA_VISIBLE_DEVICES: str):
 									--alpha_attn_prev \
 									--alpha_fixed \
 									--ignore_special_tkns \
-									--editing_prompt "dog" "man" \
-									--reverse_edit_direction 0 0 \
-									--edit_warmup_steps 10 10 \
-									--edit_guidance_scale 5 5 \
-									--edit_threshold 0.90 0.90 \
-									--edit_weights 1 1 \
 				')
 
 			elif mode == "SmartControl":

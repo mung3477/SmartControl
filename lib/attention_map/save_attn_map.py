@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torchvision.transforms import ToPILImage
 from transformers import CLIPTokenizer
 
-from ..utils import assert_path
+from ..utils.file import assert_path
 
 
 class AttnSaveOptions(TypedDict):
