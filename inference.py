@@ -16,7 +16,7 @@ class Action(TypedDict):
 actions: List[Action] = [{
 	"prompt": "A {subject} playing a trumpet",
 	"mask_prompt": "A man playing a trumpet",
-	"focus_prompt": "playing trumpet",
+	"focus_prompt": "playing",
 	"reference": "Trumpet.png",
 	"control": "depth"
 },{

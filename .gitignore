@@ -9,3 +9,4 @@ log/**/*.png
 .venv
 *.txt
 *.pt
+.DS_Store
