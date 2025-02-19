@@ -55,7 +55,8 @@ def replace_call_methods(module: torch.nn.Module):
             replace_call_methods(subnet)
 
 def register_unet(pipe, smart_ckpt, mask_options: AlphaOptions, reset_masks=True):
-    load_smartcontrol(pipe.unet, smart_ckpt)
+    if smart_ckpt is not None:
+        load_smartcontrol(pipe.unet, smart_ckpt)
 
     if reset_masks:
         pipe.unet.alpha_masks = dict()

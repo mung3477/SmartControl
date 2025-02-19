@@ -26,7 +26,7 @@ from transformers import (CLIPImageProcessor, CLIPTextModel, CLIPTokenizer,
 from lib import (COND_BLOCKS, AttnSaveOptions, EditGuidance,
                  SemanticStableDiffusionPipelineArgs, agg_by_blocks,
                  assert_path, default_option, save_attention_maps,
-                 tokenize_and_mark_prompts)
+                 tokenize_and_mark_prompts, prepare_image_bsz_modified)
 
 from .types import AttnDiffTrgtTokens
 
@@ -184,6 +184,29 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 						focus_tokens.remove(tkn)
 
 		return focus_indexes
+
+	def prepare_image(
+		self,
+		image,
+		width,
+		height,
+		batch_size,
+		num_images_per_prompt,
+		device,
+		dtype,
+		do_classifier_free_guidance=False,
+		guess_mode=False,
+		enabled_editing_prompts=0
+	):
+		return prepare_image_bsz_modified(self.control_image_processor, image, width,
+		height,
+		batch_size,
+		num_images_per_prompt,
+		device,
+		dtype,
+		do_classifier_free_guidance,
+		guess_mode,
+		enabled_editing_prompts)
 
 	@torch.no_grad()
 	def __call__(
@@ -642,7 +665,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					return_dict=False,
 				)[0]
 
-				if "prepare_phase" in kwargs and kwargs["prepare_phase"] is True:
+				if "prepare_phase" in kwargs and kwargs["prepare_phase"] is True and edit_args is not None:
 					noise_pred_uncond, noise_pred_text, *noise_pred_edit_concepts = noise_pred.chunk(latent_dup_num)
 
 					subject_conflict_degree = noise_pred_edit_concepts[0] - noise_pred_edit_concepts[1]

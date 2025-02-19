@@ -295,11 +295,14 @@ def ca_forward(self, mask_options: AlphaOptions):
 
             h_1 =  sample + mid_block_additional_residual
             h_4 =  sample
-            c = torch.sigmoid(self.c_pre_list[0](torch.cat([h_1 , h_4,mid_block_additional_residual], dim=1)))
+            if hasattr(self, "c_prelist"):
+                c = torch.sigmoid(self.c_pre_list[0](torch.cat([h_1 , h_4,mid_block_additional_residual], dim=1)))
+            else:
+                c = None
             ############################################# CONTROL ###############################################
             alpha_mask = generate_mask(
                 alpha_mask= [0] if added_cond_kwargs["ignore_cont"] else given_mask_options["alpha_mask"],
-                shape=c.shape[-2:],
+                shape=sample.shape[-2:],
                 device=self.device
             )
             # paired_resblock_mask = get_paired_resblock_mask(
@@ -326,15 +329,16 @@ def ca_forward(self, mask_options: AlphaOptions):
                 },
                 use_fixed_mask=given_mask_options["fixed"],
                 ignore_cont=added_cond_kwargs["ignore_cont"],
-                bsz=sample.shape[0]
+                bsz=mid_block_additional_residual.shape[0]
             )
-            print(c)
+            # print(c)
 
             # orig_sample = sample
             sample = sample + c * mid_block_additional_residual
 
-            self.mid_block.alpha_mask = c
-            self.mid_block.timestep = int(timestep.item())
+            if hasattr(self, "store_alpha_mask"):
+                self.mid_block.alpha_mask = c
+                self.mid_block.timestep = int(timestep.item())
 
             # print(timestep.item(), self.mid_block.__class__.__name__, torch.nn.functional.cosine_similarity(orig_sample, sample).mean().item())
 
@@ -376,7 +380,7 @@ def ca_forward(self, mask_options: AlphaOptions):
                     upsample_size=upsample_size,
                     attention_mask=attention_mask,
                     encoder_attention_mask=encoder_attention_mask,
-                    c_predictor= self.c_pre_list[(3*i+1) :(3*i+4)],
+                    c_predictor=None if not hasattr(self, "c_prelist") else self.c_pre_list[(3*i+1) :(3*i+4)],
                     timestep=timestep,
                     attn_inferred_mask=attn_inferred_mask,
                     # paired_resblock_mask=get_paired_resblock_mask(
@@ -400,7 +404,7 @@ def ca_forward(self, mask_options: AlphaOptions):
                     res_hidden_states_tuple=res_samples,
                     upsample_size=upsample_size,
                     scale=lora_scale,
-                    c_predictor= self.c_pre_list[(3*i+1) :(3*i+4)],
+                    c_predictor=None if not hasattr(self, "c_prelist") else self.c_pre_list[(3*i+1) :(3*i+4)],
                     timestep=timestep,
                     attn_inferred_mask=attn_inferred_mask,
                     given_mask_options=given_mask_options,
@@ -464,12 +468,16 @@ def upblock2d_forward(self):
             c_half = res_hidden_states.shape[1]//2
             h_1 = torch.cat([hidden_states, res_hidden_states[:,:c_half] + res_hidden_states[:,c_half:]], dim=1)
             h_4 = torch.cat([hidden_states, res_hidden_states[:,:c_half]], dim=1)
-            c = torch.sigmoid(c_predictor[count](torch.cat([h_1 , h_4, res_hidden_states[:,c_half:]], dim=1)))
+            if c_predictor is not None:
+                c = torch.sigmoid(c_predictor[count](torch.cat([h_1 , h_4, res_hidden_states[:,c_half:]], dim=1)))
+            else:
+                c = None
+
 
             ############################################# CONTROL ###############################################
             alpha_mask = generate_mask(
                 alpha_mask=[0] if ignore_cont else given_mask_options["alpha_mask"],
-                shape=c.shape[-2:],
+                shape=res_hidden_states.shape[-2:],
                 device=res_hidden_states.device
             )
             c = choose_alpha_mask(
@@ -571,12 +579,16 @@ def crossattnupblock2d_forward(self):
             c_half = res_hidden_states.shape[1]//2
             h_1 = torch.cat([hidden_states, res_hidden_states[:,:c_half] + res_hidden_states[:,c_half:]], dim=1)
             h_4 = torch.cat([hidden_states, res_hidden_states[:,:c_half]], dim=1)
-            c = torch.sigmoid(c_predictor[count](torch.cat([h_1 , h_4, res_hidden_states[:,c_half:]], dim=1)))
+
+            if c_predictor is not None:
+                c = torch.sigmoid(c_predictor[count](torch.cat([h_1 , h_4, res_hidden_states[:,c_half:]], dim=1)))
+            else:
+                c = None
 
             ############################################# CONTROL ###############################################
             alpha_mask = generate_mask(
                 alpha_mask=[0] if ignore_cont else given_mask_options["alpha_mask"],
-                shape=c.shape[-2:],
+                shape=res_hidden_states.shape[-2:],
                 device=res_hidden_states.device
             )
             c = choose_alpha_mask(

@@ -198,7 +198,36 @@ def _check_edit_args(args: argparse.Namespace):
 		)
 		args.edit_args.init_call_params()
 
+def prepare_image_bsz_modified(
+	control_image_processor,
+	image,
+	width,
+	height,
+	batch_size,
+	num_images_per_prompt,
+	device,
+	dtype,
+	do_classifier_free_guidance=False,
+	guess_mode=False,
+	enabled_editing_prompts=0
+):
+	image = control_image_processor.preprocess(image, height=height, width=width).to(dtype=torch.float32)
+	image_batch_size = image.shape[0]
 
+	if image_batch_size == 1:
+		repeat_by = batch_size
+	else:
+		# image batch size is the same as prompt batch size
+		repeat_by = num_images_per_prompt
+
+	image = image.repeat_interleave(repeat_by, dim=0)
+
+	image = image.to(device=device, dtype=dtype)
+
+	if do_classifier_free_guidance and not guess_mode:
+		image = torch.cat([image] * (2 + enabled_editing_prompts))
+
+	return image
 
 def _SEGA_image_name(args: argparse.Namespace):
 	suffix = ""

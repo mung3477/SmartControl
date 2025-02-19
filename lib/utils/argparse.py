@@ -90,21 +90,22 @@ def check_args(args: argparse.Namespace):
 
 def decide_cntl(args: argparse.Namespace):
 	if args.cntl == "depth":
-		args.smart_ckpt = "./depth.ckpt"
+		args.smart_ckpt = "./depth.ckpt" if args.use_smartcontrol else None
 		args.controlnet_path = "lllyasviel/control_v11f1p_sd15_depth"
 		args.preprocessor = ZoeDetector.from_pretrained(args.detector_path)
 	elif args.cntl == "canny":
-		args.smart_ckpt = "./canny.ckpt"
+		args.smart_ckpt = "./canny.ckpt" if args.use_smartcontrol else None
 		args.controlnet_path = "lllyasviel/control_v11p_sd15_canny"
 		args.preprocessor = CannyDetector()
 	elif args.cntl == "pose":
-		args.smart_ckpt = "./depth.ckpt" 	# any ckpt is Okay since we are not using smartcontrol for pose control case
+		args.smart_ckpt = "./depth.ckpt" if args.use_smartcontrol else None 	# any ckpt is Okay since we are not using smartcontrol for pose control case
 		args.controlnet_path = "lllyasviel/control_v11p_sd15_openpose"
 		args.preprocessor = OpenposeDetector.from_pretrained(args.detector_path)
 
 def parse_args():
 	parser = argparse.ArgumentParser(description="A brief description of your script")
 
+	parser.add_argument('--use_smartcontrol', action='store_true', default=False)
 	parser.add_argument('--alpha_mask', nargs="*", type=float, default=[1], help="Mask applied on inferred alpha. [1, 0, 0, 0] means only upper left is used with 1. None uses SmartControl's inferred alpha_mask.")
 	parser.add_argument('--alpha_fixed', action='store_true', default=False, help="Whether to use given alpha as fixed alpha. False means given alpha_mask is multiplied on inferred alpha elementwisely.")
 	parser.add_argument('--alpha_attn_diff', action='store_true', default=False, help="Whether to calculate alpha with differences btw two cross attentions on generate prompt and condition prompt.")
