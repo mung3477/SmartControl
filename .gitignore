@@ -1,7 +1,7 @@
 **/*.jpg
 **/__pycache__/*
 *.ckpt
-output/**/*.png
+**/output/**/*.png
 log/**/*.png
 **/*.bin
 **/*.safetensors
@@ -10,3 +10,4 @@ log/**/*.png
 *.txt
 *.pt
 .DS_Store
+eval_env/*

@@ -7,7 +7,7 @@ from PIL import Image, ImageChops, ImageDraw
 class TextDraw_Options(TypedDict):
     fill: Tuple
 
-def image_grid(imgs, rows, cols, caption, options: TextDraw_Options = { "fill" : (0, 0, 0)}):
+def image_grid(imgs, rows, cols, caption="", options: TextDraw_Options = { "fill" : (0, 0, 0)}):
     assert len(imgs) == rows*cols
 
     w, h = imgs[0].size

@@ -25,8 +25,8 @@ from transformers import (CLIPImageProcessor, CLIPTextModel, CLIPTokenizer,
 
 from lib import (COND_BLOCKS, AttnSaveOptions, EditGuidance,
                  SemanticStableDiffusionPipelineArgs, agg_by_blocks,
-                 assert_path, default_option, save_attention_maps,
-                 tokenize_and_mark_prompts, prepare_image_bsz_modified)
+                 assert_path, default_option, prepare_image_bsz_modified,
+                 save_attention_maps, tokenize_and_mark_prompts)
 
 from .types import AttnDiffTrgtTokens
 
@@ -546,13 +546,6 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 
 		with self.progress_bar(total=num_inference_steps) as progress_bar:
 			for i, t in enumerate(timesteps):
-
-				if self.options["alternate"]:
-					ignore_cont = i % 2 == 1
-					added_cond_kwargs["ignore_cont"] = ignore_cont
-				if t < self.options["stop_point"]:
-					added_cond_kwargs["ignore_cont"] = True
-
 				# Relevant thread:
 				# https://dev-discuss.pytorch.org/t/cudagraphs-in-pytorch-2-0/1428
 				if (is_unet_compiled and is_controlnet_compiled) and is_torch_higher_equal_2_1:
@@ -642,7 +635,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					down_block_res_samples = [torch.cat([torch.zeros_like(d), d]) for d in down_block_res_samples]
 					mid_block_res_sample = torch.cat([torch.zeros_like(mid_block_res_sample), mid_block_res_sample])
 
-				if self.options["ignore_special_tkns"]:
+				if "ignore_special_tkns" in self.options and self.options["ignore_special_tkns"] == True:
 					last_idx = len(self.tokenizer(prompt)['input_ids']) - 1
 
 					if cross_attention_kwargs is None:

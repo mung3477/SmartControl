@@ -1,4 +1,5 @@
-from typing import TypedDict
+from enum import Enum
+from typing import List, TypedDict, Union
 
 import torch
 from controlnet_aux import CannyDetector, OpenposeDetector, ZoeDetector
@@ -6,21 +7,38 @@ from diffusers import AutoencoderKL, ControlNetModel, UniPCMultistepScheduler
 from PIL import Image
 from pytorch_lightning import seed_everything
 
-from ..lib import (assert_path, image_grid, init_store_attn_map, make_img_name,
-                   make_ref_name, parse_args, save_alpha_masks,
-                   save_attention_maps)
-from ..smartcontrol import SmartControlPipeline, register_unet
+from lib import (assert_path, image_grid, init_store_attn_map,
+                 save_alpha_masks, save_attention_maps)
+from smartcontrol import SmartControlPipeline, register_unet
 
+
+class ModelType(Enum):
+	ControlNet = 1
+	SmartControl = 2
+	ControlAttend = 3
+
+	@classmethod
+	def str2enum(cls, model: str):
+		assert model in cls._member_names_, f"The model type should be one of {cls._member_names_}, but you gave {model}"
+
+		if model == "ControlNet":
+			modelType = ModelType.ControlNet
+		elif model == "SmartControl":
+			modelType = ModelType.SmartControl
+		elif model == "ControlAttend":
+			modelType = ModelType.ControlAttend
+		return modelType
 
 class GenerateParam(TypedDict):
-    prompt: str
-    ignore_special_tkns: bool
+	seed: int
+	prompt: str
+	ignore_special_tkns: bool
 
 class EvalModel():
 	base_model_path = "SG161222/Realistic_Vision_V5.1_noVAE"
 	vae_model_path = "stabilityai/sd-vae-ft-mse"
 	control: str = "depth"	# "depth" | "pose" | "canny"
-	generate_param: GenerateParam
+	generate_param: GenerateParam = {}
 
 	def _control_setup(self, control: str):
 		if control == "depth":
@@ -33,9 +51,9 @@ class EvalModel():
 			self.controlnet_path = "lllyasviel/control_v11p_sd15_openpose"
 			self.preprocessor = OpenposeDetector.from_pretrained("lllyasviel/Annotators")
 
-	def __init__(self, control: str, output_dir: str):
+	def __init__(self, control: str):
+		assert control in ["depth", "pose", "canny"], f"control argument should be one of depth, pose, canny, but you provied {control}"
 		self.control = control
-		self.output_dir = output_dir
 
 		self._control_setup(control)
 		vae = AutoencoderKL.from_pretrained(self.vae_model_path).to(dtype=torch.float16)
@@ -61,27 +79,51 @@ class EvalModel():
 		return control_img
 
 	def _SmartControl_decide_ckpt(self):
-		if self.params["control"] == "depth":
+		if self.control == "depth":
 			return "/root/Desktop/workspace/SmartControl/depth.ckpt"
-		elif self.params["control"] == "canny":
+		elif self.control == "canny":
 			return "/root/Desktop/workspace/SmartControl/canny.ckpt"
-		elif self.params["control"] == "pose":
+		elif self.control == "pose":
 			return None
 
-	def _record_generate_params(self, prompt: str, ignore_special_tkns: bool):
+	def _record_generate_params(self, seed: int,  prompt: str, ignore_special_tkns: bool):
+		self.generate_param["seed"] = seed
 		self.generate_param["prompt"] = prompt
-		self.generate_param["ignore_special_tkns"] = False
+		self.generate_param["ignore_special_tkns"] = ignore_special_tkns
 
-	def inference_ControlNet(self, prompt: str, reference: str, seed: int, alpha_mask: str):
-		output_name = f"ControlNet {alpha_mask} - seed {seed} - {prompt} with {reference}"
+	def get_inference_func(self, modelType: ModelType):
+		self.modelType = modelType
+
+		if modelType == ModelType.ControlNet:
+			return self.inference_ControlNet
+		elif modelType == ModelType.SmartControl:
+			return self.inference_SmartControl
+		elif modelType == ModelType.ControlAttend:
+			return self.inference_ControlAttend
+
+		return None
+
+	def set_output_dir(self, output_dir: str):
+		assert_path(output_dir)
+		self.output_dir = output_dir
+
+	@staticmethod
+	def _filepath2name(filepath: str):
+		no_extension = filepath.split(".")[0]
+		name = " ".join(no_extension.split("/")[-2:])
+		return name
+
+	def inference_ControlNet(self, prompt: str, reference: str, seed: int, alpha_mask: List[float] = [1.0], **kwargs):
+		output_name = f"ControlNet {alpha_mask} - {prompt} with {self._filepath2name(reference)}"
 		control_img = self._prepare_control(reference)
 
+		init_store_attn_map(self.pipe)
 		register_unet(self.pipe, None, mask_options={
 			"alpha_mask": alpha_mask,
 			"fixed": True
 		})
 
-		self._record_generate_params(prompt=prompt, ignore_special_tkns=False)
+		self._record_generate_params(seed=seed, prompt=prompt, ignore_special_tkns=False)
 
 		seed_everything(seed)
 		output = self.pipe(
@@ -91,18 +133,19 @@ class EvalModel():
 
 		return output, output_name
 
-	def inference_SmartControl(self, prompt: str, reference: str, seed: int):
-		output_name = f"SmartControl - seed {seed} - {prompt} with {reference}"
+	def inference_SmartControl(self, prompt: str, reference: str, seed: int, **kwargs):
+		output_name = f"SmartControl - {prompt} with {self._filepath2name(reference)}"
 		control_img = self._prepare_control(reference)
 
+		init_store_attn_map(self.pipe)
 		register_unet(self.pipe,
 				smart_ckpt= self._SmartControl_decide_ckpt(),
 				mask_options={
-					"alpha_mask": "1",
-					"fixed": True
+					"alpha_mask": [1.0],
+					"fixed": False
 		})
 
-		self._record_generate_params(prompt=prompt, ignore_special_tkns=False)
+		self._record_generate_params(seed=seed, prompt=prompt, ignore_special_tkns=False)
 
 		seed_everything(seed)
 		output = self.pipe(
@@ -112,8 +155,8 @@ class EvalModel():
 
 		return output, output_name
 
-	def inference_ControlAttend(self, prompt: str, reference: str, seed: int, mask_prompt, focus_tokens):
-		output_name = f"ControlAttend - seed {seed} - {prompt} with {reference} focusing on {focus_tokens} of {mask_prompt}"
+	def inference_ControlAttend(self, prompt: str, reference: str, seed: int, mask_prompt, focus_tokens, **kwargs):
+		output_name = f"ControlAttend - {prompt} with {self._filepath2name(reference)} focusing on {focus_tokens} of {mask_prompt}"
 		control_img = self._prepare_control(reference)
 
 		pipe_options = {
@@ -126,7 +169,7 @@ class EvalModel():
 			pipe=self.pipe,
 			smart_ckpt=None,
 			mask_options={
-				"alpha_mask": "1",
+				"alpha_mask": [1.0],
 				"fixed": True
 			}
 		)
@@ -141,7 +184,7 @@ class EvalModel():
 		save_attention_maps(
 			self.pipe.unet.attn_maps,
 			self.pipe.tokenizer,
-			base_dir=f"/root/Desktop/workspace/SmartControl/log/attn_maps/{output_name}/{mask_prompt}",
+			base_dir=f"/root/Desktop/workspace/SmartControl/log/attn_maps/{self.modelType.name}//{output_name}/{mask_prompt}",
 			prompts=[mask_prompt],
 			options={
 				"prefix": "",
@@ -150,13 +193,13 @@ class EvalModel():
 				"enabled_editing_prompts": 0
 		})
 
-		self._record_generate_params(prompt=prompt, ignore_special_tkns=True)
+		self._record_generate_params(seed=seed, prompt=prompt, ignore_special_tkns=True)
 
 		register_unet(
 			pipe=self.pipe,
 			smart_ckpt=None,
 			mask_options={
-				"alpha_mask": "1",
+				"alpha_mask": [1.0],
 				"fixed": True
 			},
 			reset_masks=False
@@ -172,19 +215,21 @@ class EvalModel():
 		return output, output_name
 
 	def postprocess(self, image, image_name, save_attn: bool = False):
-		image.save(f"{self.output_dir}/{image_name}.png")
+		save_dir = f"{self.output_dir}/{self.modelType.name}/{image_name}"
+		assert_path(save_dir)
+		image.save(f"{save_dir}/generated - seed {self.generate_param['seed']}.png")
 		comparison = image_grid([
 		  		self.reference.resize((512, 512)),
 				self.control_img.resize((512, 512)),
 		 		image.resize((512, 512))
 		   ], 1, 3)
-		comparison.save(f"{self.output_dir}/{image_name}_result.png")
+		comparison.save(f"{save_dir}/control_result - seed {self.generate_param['seed']}.png")
 
 		if save_attn:
 			save_attention_maps(
 			self.pipe.unet.attn_maps,
 			self.pipe.tokenizer,
-			base_dir=f"/root/Desktop/workspace/SmartControl/log/attn_maps/{image_name}",
+			base_dir=f"/root/Desktop/workspace/SmartControl/log/attn_maps/{self.modelType.name}/{image_name}",
 			prompts=[self.generate_param["prompt"]],
 			options={
 				"prefix": "",
@@ -192,4 +237,6 @@ class EvalModel():
 				"ignore_special_tkns": self.generate_param["ignore_special_tkns"],
 				"enabled_editing_prompts": 0
 			})
-			save_alpha_masks(self.pipe.unet.alpha_masks, f'/root/Desktop/workspace/SmartControl/log/alpha_masks/{image_name}')
+			save_alpha_masks(self.pipe.unet.alpha_masks, f'/root/Desktop/workspace/SmartControl/log/alpha_masks/{self.modelType.name}/{image_name}')
+
+		print(f"Saved results for {image_name}")

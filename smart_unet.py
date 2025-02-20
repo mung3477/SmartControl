@@ -295,7 +295,7 @@ def ca_forward(self, mask_options: AlphaOptions):
 
             h_1 =  sample + mid_block_additional_residual
             h_4 =  sample
-            if hasattr(self, "c_prelist"):
+            if hasattr(self, "c_pre_list"):
                 c = torch.sigmoid(self.c_pre_list[0](torch.cat([h_1 , h_4,mid_block_additional_residual], dim=1)))
             else:
                 c = None
@@ -380,7 +380,7 @@ def ca_forward(self, mask_options: AlphaOptions):
                     upsample_size=upsample_size,
                     attention_mask=attention_mask,
                     encoder_attention_mask=encoder_attention_mask,
-                    c_predictor=None if not hasattr(self, "c_prelist") else self.c_pre_list[(3*i+1) :(3*i+4)],
+                    c_predictor=None if not hasattr(self, "c_pre_list") else self.c_pre_list[(3*i+1) :(3*i+4)],
                     timestep=timestep,
                     attn_inferred_mask=attn_inferred_mask,
                     # paired_resblock_mask=get_paired_resblock_mask(
@@ -404,7 +404,7 @@ def ca_forward(self, mask_options: AlphaOptions):
                     res_hidden_states_tuple=res_samples,
                     upsample_size=upsample_size,
                     scale=lora_scale,
-                    c_predictor=None if not hasattr(self, "c_prelist") else self.c_pre_list[(3*i+1) :(3*i+4)],
+                    c_predictor=None if not hasattr(self, "c_pre_list") else self.c_pre_list[(3*i+1) :(3*i+4)],
                     timestep=timestep,
                     attn_inferred_mask=attn_inferred_mask,
                     given_mask_options=given_mask_options,
