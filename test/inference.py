@@ -1,3 +1,4 @@
+import os
 from typing import List, TypedDict
 
 import torch
@@ -95,8 +96,18 @@ class EvalModel():
 		name = " ".join(no_extension.split("/")[-2:])
 		return name
 
+	def _is_already_generated(self, output_name, seed):
+		save_dir = f"{self.output_dir}/{self.modelType.name}/{output_name}"
+		target = f"{save_dir}/generated - seed {seed}.png"
+
+		return os.path.exists(target)
+
 	def inference_ControlNet(self, prompt: str, reference: str, seed: int, alpha_mask: List[float] = [1.0], **kwargs):
 		output_name = f"ControlNet {alpha_mask} - {prompt} with {self._filepath2name(reference)}"
+		if self._is_already_generated(output_name, seed):
+			print(f"{output_name} - seed {seed}  is already generated. Skipping.")
+			return None, None
+
 		control_img = self._prepare_control(reference)
 
 		init_store_attn_map(self.pipe)
@@ -117,6 +128,10 @@ class EvalModel():
 
 	def inference_SmartControl(self, prompt: str, reference: str, seed: int, **kwargs):
 		output_name = f"SmartControl - {prompt} with {self._filepath2name(reference)}"
+		if self._is_already_generated(output_name, seed):
+			print(f"{output_name} - seed {seed} is already generated. Skipping.")
+			return None, None
+
 		control_img = self._prepare_control(reference)
 
 		init_store_attn_map(self.pipe)
@@ -139,6 +154,10 @@ class EvalModel():
 
 	def inference_ControlAttend(self, prompt: str, reference: str, seed: int, mask_prompt, focus_tokens, **kwargs):
 		output_name = f"ControlAttend - {prompt} with {self._filepath2name(reference)} focusing on {focus_tokens} of {mask_prompt}"
+		if self._is_already_generated(output_name, seed):
+			print(f"{output_name} - seed {seed}  is already generated. Skipping.")
+			return None, None
+
 		control_img = self._prepare_control(reference)
 
 		pipe_options = {
@@ -197,6 +216,9 @@ class EvalModel():
 		return output, output_name
 
 	def postprocess(self, image, image_name, save_attn: bool = False):
+		if image is None or image_name is None:
+			return
+
 		save_dir = f"{self.output_dir}/{self.modelType.name}/{image_name}"
 		assert_path(save_dir)
 		image.save(f"{save_dir}/generated - seed {self.generate_param['seed']}.png")
