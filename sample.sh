@@ -4,7 +4,7 @@ control="depth"
 
 # ControlNet
 if [[ "$1" == "ControlNet" ]]; then
-	python3 test.py --CUDA_VISIBLE_DEVICES="0" --control="$control" --mode="ControlNet"
+	python3 test.py --CUDA_VISIBLE_DEVICES="3" --control="$control" --mode="ControlNet"
 elif [[ "$1" == "SmartControl" ]]; then
 	python3 test.py --CUDA_VISIBLE_DEVICES="1" --control="$control" --mode="SmartControl"
 else

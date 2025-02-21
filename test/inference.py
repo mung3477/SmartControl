@@ -1,5 +1,4 @@
-from enum import Enum
-from typing import List, TypedDict, Union
+from typing import List, TypedDict
 
 import torch
 from controlnet_aux import CannyDetector, OpenposeDetector, ZoeDetector
@@ -10,24 +9,7 @@ from pytorch_lightning import seed_everything
 from lib import (assert_path, image_grid, init_store_attn_map,
                  save_alpha_masks, save_attention_maps)
 from smartcontrol import SmartControlPipeline, register_unet
-
-
-class ModelType(Enum):
-	ControlNet = 1
-	SmartControl = 2
-	ControlAttend = 3
-
-	@classmethod
-	def str2enum(cls, model: str):
-		assert model in cls._member_names_, f"The model type should be one of {cls._member_names_}, but you gave {model}"
-
-		if model == "ControlNet":
-			modelType = ModelType.ControlNet
-		elif model == "SmartControl":
-			modelType = ModelType.SmartControl
-		elif model == "ControlAttend":
-			modelType = ModelType.ControlAttend
-		return modelType
+from .types import ModelType
 
 class GenerateParam(TypedDict):
 	seed: int

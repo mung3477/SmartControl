@@ -1,10 +1,11 @@
 import argparse
 import os
-from test.inference import EvalModel, ModelType
+from test.inference import EvalModel
+from test.types import ModelType
 from test.test_set import (animal_prompts, animal_subjects, human_prompts,
                            human_subjects, seeds)
 from typing import Callable
-
+from tqdm import tqdm
 
 def test_no_conflict(
 	eval: EvalModel,
@@ -41,7 +42,7 @@ def test_no_conflict(
 def test_mild_conflict(
 	eval: EvalModel,
 	inference: Callable,
-	output_dir: str = "/root/Desktop/workspace/SmartControl/test/output/no_conflict",
+	output_dir: str = "/root/Desktop/workspace/SmartControl/test/output/mild_conflict",
 	alpha_mask: str = "1",
 	mask_prompt: str = None,
 	focus_tokens: str = None,
@@ -49,8 +50,8 @@ def test_mild_conflict(
 ):
 	eval.set_output_dir(output_dir)
 
-	for seed in seeds:
-		for subject in human_subjects:
+	for seed in tqdm(seeds, desc="For all seeds"):
+		for subject in tqdm(human_subjects, desc="For all human subjects"):
 			for subject2 in human_subjects:
 				if subject == subject2:
 					continue
@@ -63,7 +64,7 @@ def test_mild_conflict(
 					eval.postprocess(output, output_name, save_attn=save_attn)
 
 		for subject in animal_subjects:
-			for subject2 in animal_subjects:
+			for subject2 in tqdm(animal_subjects, desc="For all animal subjects"):
 				if subject == subject2:
 					continue
 				for prompt, mask_prompt, focus_tokens in animal_prompts:
@@ -81,7 +82,7 @@ def test_mild_conflict(
 def test_significant_conflict(
 	eval: EvalModel,
 	inference: Callable,
-	output_dir: str = "/root/Desktop/workspace/SmartControl/test/output/no_conflict",
+	output_dir: str = "/root/Desktop/workspace/SmartControl/test/output/significant_conflict",
 	alpha_mask: str = "1",
 	save_attn: bool = False
 ):
@@ -134,7 +135,7 @@ def main():
 	eval = EvalModel(args.control)
 	inference = eval.get_inference_func(args.modelType)
 
-	test_no_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask)
+	# test_no_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask)
 	test_mild_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask)
 	test_significant_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask)
 
