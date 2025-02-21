@@ -63,9 +63,9 @@ class EvalModel():
 
 	def _SmartControl_decide_ckpt(self):
 		if self.control == "depth":
-			return "/root/Desktop/workspace/SmartControl/depth.ckpt"
+			return f"{os.getcwd()}/depth.ckpt"
 		elif self.control == "canny":
-			return "/root/Desktop/workspace/SmartControl/canny.ckpt"
+			return f"{os.getcwd()}/canny.ckpt"
 		elif self.control == "pose":
 			return None
 
@@ -185,7 +185,7 @@ class EvalModel():
 		save_attention_maps(
 			self.pipe.unet.attn_maps,
 			self.pipe.tokenizer,
-			base_dir=f"/root/Desktop/workspace/SmartControl/log/attn_maps/{self.modelType.name}//{output_name}/{mask_prompt}",
+			base_dir=f"{os.getcwd()}/log/attn_maps/{self.modelType.name}//{output_name}/{mask_prompt}",
 			prompts=[mask_prompt],
 			options={
 				"prefix": "",
@@ -233,7 +233,7 @@ class EvalModel():
 			save_attention_maps(
 			self.pipe.unet.attn_maps,
 			self.pipe.tokenizer,
-			base_dir=f"/root/Desktop/workspace/SmartControl/log/attn_maps/{self.modelType.name}/{image_name}",
+			base_dir=f"{os.getcwd()}/log/attn_maps/{self.modelType.name}/{image_name}",
 			prompts=[self.generate_param["prompt"]],
 			options={
 				"prefix": "",
@@ -241,6 +241,6 @@ class EvalModel():
 				"ignore_special_tkns": self.generate_param["ignore_special_tkns"],
 				"enabled_editing_prompts": 0
 			})
-			save_alpha_masks(self.pipe.unet.alpha_masks, f'/root/Desktop/workspace/SmartControl/log/alpha_masks/{self.modelType.name}/{image_name}')
+			save_alpha_masks(self.pipe.unet.alpha_masks, f'{os.getcwd()}/log/alpha_masks/{self.modelType.name}/{image_name}')
 
 		print(f"Saved results for {image_name}")

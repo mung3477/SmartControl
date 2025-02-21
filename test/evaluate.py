@@ -3,7 +3,7 @@ from typing import Tuple, List, Optional
 import csv
 
 import clip
-# import ImageReward as RM
+import ImageReward as RM
 import torch
 from tqdm import tqdm
 
@@ -106,13 +106,13 @@ class QuantitativeEval():
 
 		subject = " ".join(ref_fp.split(' ')[:2])
 		action = " ".join(ref_fp.split(' ')[2:])
-		ref_fp = f"/root/Desktop/workspace/SmartControl/assets/test/{subject}/{action}.png"
+		ref_fp = f"{os.getcwd()}/assets/test/{subject}/{action}.png"
 
 		return (prompt, ref_fp)
 
 	@staticmethod
 	def get_all_image_pathes(conflict_degree: ConflictDegree, modelType: ModelType):
-		output_root = f"/root/Desktop/workspace/SmartControl/test/output/{conflict_degree.name}/{modelType.name}"
+		output_root = f"{os.getcwd()}/test/output/{conflict_degree.name}/{modelType.name}"
 		assert os.path.exists, f"{output_root} does not exist"
 
 		all_image_pathes = []   # (generated, refernce, prompt)
@@ -125,7 +125,7 @@ class QuantitativeEval():
 
 	@staticmethod
 	def _record_as_csv(log_name: str, self_simil_score: Optional[float], img_reward_score: Optional[float], clip_score: Optional[float]):
-		csv_file_path = "/root/Desktop/workspace/SmartControl/test/evaluation_scores.csv"
+		csv_file_path = f"{os.getcwd()}/test/evaluation_scores.csv"
 		csv_columns = ["log_name", "self_similarity", "image_reward", "clip"]
 		try:
 			with open(csv_file_path, 'a', newline='') as csvfile:
@@ -140,8 +140,8 @@ class QuantitativeEval():
 			print(f"Error writing to CSV: {e}")
 
 	def __init__(self, device = "cuda"):
-		# self.measure_self_sim = self._self_similarity_score(device)
-		# self.measure_img_rwd = self._image_reward_score(device)
+		self.measure_self_sim = self._self_similarity_score(device)
+		self.measure_img_rwd = self._image_reward_score(device)
 		self.measure_clip_scr = self._clip_score(device)
 
 	def evaluate_results(self, log_name: str, image_ref_prompt_pairs: List[Tuple[str, str, str]], self_simil: bool = True, img_reward: bool = True, clip: bool = True):
@@ -163,11 +163,11 @@ class QuantitativeEval():
 				clip_score += self.measure_clip_scr(img_fp, prompt)
 
 		if self_simil_score is not None:
-			self_simil_score /= len(image_ref_prompt_pairs)
+			self_simil_score /= len(image_ref_prompt_pairs) + 1
 		if img_reward_score is not None:
-			img_reward_score /= len(image_ref_prompt_pairs)
+			img_reward_score /= len(image_ref_prompt_pairs) + 1
 		if clip_score is not None:
-			clip_score /= len(image_ref_prompt_pairs)
+			clip_score /= len(image_ref_prompt_pairs) + 1
 
 		print(f"######### {log_name} ########")
 		if self_simil_score is not None:

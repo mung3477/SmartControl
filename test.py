@@ -10,7 +10,7 @@ from tqdm import tqdm
 def test_no_conflict(
 	eval: EvalModel,
 	inference: Callable,
-	output_dir: str = "/root/Desktop/workspace/SmartControl/test/output/no_conflict",
+	output_dir: str = f"{os.getcwd()}/test/output/no_conflict",
 	alpha_mask: str = "1",
 	save_attn: bool = False,
 	seed_idx: Optional[int] = None,
@@ -26,7 +26,7 @@ def test_no_conflict(
 				for prompt, mask_prompt, focus_tokens in human_prompts:
 					prompt = prompt.format(subject=subject)
 					mask_prompt = mask_prompt.format(condition_subject=subject)
-					reference = f"/root/Desktop/workspace/SmartControl/assets/test/{subject}/{' '.join(prompt.split(' ')[2:])}.png"
+					reference = f"{os.getcwd()}/assets/test/{subject}/{' '.join(prompt.split(' ')[2:])}.png"
 
 					output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
 					eval.postprocess(output, output_name, save_attn=save_attn)
@@ -36,7 +36,7 @@ def test_no_conflict(
 				for prompt, mask_prompt, focus_tokens in animal_prompts:
 					prompt = prompt.format(subject=subject)
 					mask_prompt = mask_prompt.format(condition_subject=subject)
-					reference = f"/root/Desktop/workspace/SmartControl/assets/test/{subject}/{' '.join(prompt.split(' ')[2:])}.png"
+					reference = f"{os.getcwd()}/assets/test/{subject}/{' '.join(prompt.split(' ')[2:])}.png"
 
 					output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
 					eval.postprocess(output, output_name, save_attn=save_attn)
@@ -48,7 +48,7 @@ def test_no_conflict(
 def test_mild_conflict(
 	eval: EvalModel,
 	inference: Callable,
-	output_dir: str = "/root/Desktop/workspace/SmartControl/test/output/mild_conflict",
+	output_dir: str = f"{os.getcwd()}/test/output/mild_conflict",
 	alpha_mask: str = "1",
 	mask_prompt: str = None,
 	focus_tokens: str = None,
@@ -70,7 +70,7 @@ def test_mild_conflict(
 					for prompt, mask_prompt, focus_tokens in human_prompts:
 						prompt = prompt.format(subject=subject)
 						mask_prompt = mask_prompt.format(condition_subject=subject2)
-						reference = f"/root/Desktop/workspace/SmartControl/assets/test/{subject2}/{' '.join(prompt.split(' ')[2:])}.png"
+						reference = f"{os.getcwd()}/assets/test/{subject2}/{' '.join(prompt.split(' ')[2:])}.png"
 
 						output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
 						eval.postprocess(output, output_name, save_attn=save_attn)
@@ -83,7 +83,7 @@ def test_mild_conflict(
 					for prompt, mask_prompt, focus_tokens in animal_prompts:
 						prompt = prompt.format(subject=subject)
 						mask_prompt = mask_prompt.format(condition_subject=subject2)
-						reference = f"/root/Desktop/workspace/SmartControl/assets/test/{subject2}/{' '.join(prompt.split(' ')[2:])}.png"
+						reference = f"{os.getcwd()}/assets/test/{subject2}/{' '.join(prompt.split(' ')[2:])}.png"
 
 						output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
 						eval.postprocess(output, output_name, save_attn=save_attn)
@@ -95,7 +95,7 @@ def test_mild_conflict(
 def test_significant_conflict(
 	eval: EvalModel,
 	inference: Callable,
-	output_dir: str = "/root/Desktop/workspace/SmartControl/test/output/significant_conflict",
+	output_dir: str = f"{os.getcwd()}/test/output/significant_conflict",
 	alpha_mask: str = "1",
 	save_attn: bool = False,
 	seed_idx: Optional[int] = None,
@@ -113,7 +113,7 @@ def test_significant_conflict(
 					for prompt, mask_prompt, focus_tokens in animal_prompts:
 						prompt = prompt.format(subject=subject)
 						mask_prompt = mask_prompt.format(condition_subject=subject2)
-						reference = f"/root/Desktop/workspace/SmartControl/assets/test/{subject2}/{' '.join(prompt.split(' ')[2:])}.png"
+						reference = f"{os.getcwd()}/assets/test/{subject2}/{' '.join(prompt.split(' ')[2:])}.png"
 
 						output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
 						eval.postprocess(output, output_name, save_attn=save_attn)
@@ -124,7 +124,7 @@ def test_significant_conflict(
 					for prompt, mask_prompt, focus_tokens in human_prompts:
 						prompt = prompt.format(subject=subject)
 						mask_prompt = mask_prompt.format(condition_subject=subject2)
-						reference = f"/root/Desktop/workspace/SmartControl/assets/test/{subject2}/{' '.join(prompt.split(' ')[2:])}.png"
+						reference = f"{os.getcwd()}/assets/test/{subject2}/{' '.join(prompt.split(' ')[2:])}.png"
 
 						output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
 						eval.postprocess(output, output_name, save_attn=save_attn)
