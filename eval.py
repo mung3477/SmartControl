@@ -25,8 +25,8 @@ def main():
 	QE.evaluate_results(
      	log_name=f"{args.conflict_degree.name}-{args.modelType.name}",
 		image_ref_prompt_pairs=images_info,
-		self_simil=False,
-		img_reward=False,
+		self_simil=True,
+		img_reward=True,
 		clip=True
     )
 

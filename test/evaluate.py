@@ -103,6 +103,7 @@ class QuantitativeEval():
 	def _get_promptNref_fp(dir_path: str):
 		[prompt, ref_fp] = dir_path.split("/")[-1].split(" with ")
 		prompt = prompt.split(" - ")[-1]
+		ref_fp = ref_fp.split(" focusing ")[0]
 
 		subject = " ".join(ref_fp.split(' ')[:2])
 		action = " ".join(ref_fp.split(' ')[2:])
@@ -129,13 +130,8 @@ class QuantitativeEval():
 		csv_columns = ["log_name", "self_similarity", "image_reward", "clip"]
 		try:
 			with open(csv_file_path, 'a', newline='') as csvfile:
-				writer = csv.DictWriter(csvfile, fieldnames=csv_columns)
-				writer.writerow({
-					"log_name": log_name,
-					"self_similarity": str(self_simil_score),
-					"image_reward": str(img_reward_score),
-					"clip": str(clip_score)
-				})
+				writer = csv.writer(csvfile, delimiter='\t')
+				writer.writerow([log_name, str(self_simil_score), str(img_reward_score), str(clip_score)])
 		except Exception as e:
 			print(f"Error writing to CSV: {e}")
 
