@@ -15,6 +15,7 @@ def test_no_conflict(
 	save_attn: bool = False,
 	seed_idx: Optional[int] = None,
   	for_loop_idx: Optional[int] = None,
+   	init_subject_idx: Optional[int] = None,
 ):
 	eval.set_output_dir(output_dir)
 
@@ -22,28 +23,26 @@ def test_no_conflict(
 		if seed_idx is not None and i != seed_idx:
 			continue
 		if for_loop_idx is None or for_loop_idx == 0:
-			for subject in tqdm(human_subjects, desc="For all human subjects"):
-				for prompt, mask_prompt, focus_tokens in human_prompts:
-					prompt = prompt.format(subject=subject)
-					mask_prompt = mask_prompt.format(condition_subject=subject)
-					reference = f"{os.getcwd()}/assets/test/{subject}/{' '.join(prompt.split(' ')[2:])}.png"
+			for subj_idx, subject in tqdm(enumerate(human_subjects), desc="For all human subjects"):
+				if init_subject_idx is None or subj_idx >= init_subject_idx:
+					for prompt, mask_prompt, focus_tokens in human_prompts:
+						prompt = prompt.format(subject=subject)
+						mask_prompt = mask_prompt.format(condition_subject=subject)
+						reference = f"{os.getcwd()}/assets/test/{subject}/{' '.join(prompt.split(' ')[2:])}.png"
 
-					output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
-					eval.postprocess(output, output_name, save_attn=save_attn)
+						output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
+						eval.postprocess(output, output_name, save_attn=save_attn)
 
 		if for_loop_idx is None or for_loop_idx == 1:
-			for subject in tqdm(animal_subjects, desc="For all human subjects"):
-				for prompt, mask_prompt, focus_tokens in animal_prompts:
-					prompt = prompt.format(subject=subject)
-					mask_prompt = mask_prompt.format(condition_subject=subject)
-					reference = f"{os.getcwd()}/assets/test/{subject}/{' '.join(prompt.split(' ')[2:])}.png"
+			for subj_idx, subject in tqdm(enumerate(animal_subjects), desc="For all human subjects"):
+				if init_subject_idx is None or subj_idx >= init_subject_idx:
+					for prompt, mask_prompt, focus_tokens in animal_prompts:
+						prompt = prompt.format(subject=subject)
+						mask_prompt = mask_prompt.format(condition_subject=subject)
+						reference = f"{os.getcwd()}/assets/test/{subject}/{' '.join(prompt.split(' ')[2:])}.png"
 
-					output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
-					eval.postprocess(output, output_name, save_attn=save_attn)
-
-	# CLIP score
-	# ImageReward
-	# Picscore
+						output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
+						eval.postprocess(output, output_name, save_attn=save_attn)
 
 def test_mild_conflict(
 	eval: EvalModel,
@@ -55,6 +54,7 @@ def test_mild_conflict(
 	save_attn: bool = False,
 	seed_idx: Optional[int] = None,
  	for_loop_idx: Optional[int] = None,
+  	init_subject_idx: Optional[int] = None,
 ):
 	eval.set_output_dir(output_dir)
 
@@ -63,34 +63,32 @@ def test_mild_conflict(
 			continue
 
 		if for_loop_idx is None or for_loop_idx == 0:
-			for subject in tqdm(human_subjects, desc="For all human subjects"):
-				for subject2 in human_subjects:
-					if subject == subject2:
-						continue
-					for prompt, mask_prompt, focus_tokens in human_prompts:
-						prompt = prompt.format(subject=subject)
-						mask_prompt = mask_prompt.format(condition_subject=subject2)
-						reference = f"{os.getcwd()}/assets/test/{subject2}/{' '.join(prompt.split(' ')[2:])}.png"
+			for subj_idx, subject in tqdm(enumerate(human_subjects), desc="For all human subjects"):
+				if init_subject_idx is None or subj_idx >= init_subject_idx:
+					for subject2 in human_subjects:
+						if subject == subject2:
+							continue
+						for prompt, mask_prompt, focus_tokens in human_prompts:
+							prompt = prompt.format(subject=subject)
+							mask_prompt = mask_prompt.format(condition_subject=subject2)
+							reference = f"{os.getcwd()}/assets/test/{subject2}/{' '.join(prompt.split(' ')[2:])}.png"
 
-						output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
-						eval.postprocess(output, output_name, save_attn=save_attn)
+							output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
+							eval.postprocess(output, output_name, save_attn=save_attn)
 
 		if for_loop_idx is None or for_loop_idx == 1:
-			for subject in animal_subjects:
-				for subject2 in tqdm(animal_subjects, desc="For all animal subjects"):
-					if subject == subject2:
-						continue
-					for prompt, mask_prompt, focus_tokens in animal_prompts:
-						prompt = prompt.format(subject=subject)
-						mask_prompt = mask_prompt.format(condition_subject=subject2)
-						reference = f"{os.getcwd()}/assets/test/{subject2}/{' '.join(prompt.split(' ')[2:])}.png"
+			for subj_idx, subject in tqdm(enumerate(animal_subjects), desc="For all animal subjects"):
+				if init_subject_idx is None or subj_idx >= init_subject_idx:
+					for subject2 in animal_subjects:
+						if subject == subject2:
+							continue
+						for prompt, mask_prompt, focus_tokens in animal_prompts:
+							prompt = prompt.format(subject=subject)
+							mask_prompt = mask_prompt.format(condition_subject=subject2)
+							reference = f"{os.getcwd()}/assets/test/{subject2}/{' '.join(prompt.split(' ')[2:])}.png"
 
-						output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
-						eval.postprocess(output, output_name, save_attn=save_attn)
-
-	# CLIP score
-	# ImageReward
-	# Picscore
+							output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
+							eval.postprocess(output, output_name, save_attn=save_attn)
 
 def test_significant_conflict(
 	eval: EvalModel,
@@ -110,7 +108,7 @@ def test_significant_conflict(
 
 		if for_loop_idx is None or for_loop_idx == 0:
 			for subj_idx, subject in tqdm(enumerate(human_subjects), desc="For all human subjects"):
-				if init_subject_idx is None or subj_idx > init_subject_idx:
+				if init_subject_idx is None or subj_idx >= init_subject_idx:
 					for subject2 in animal_subjects:
 						for prompt, mask_prompt, focus_tokens in animal_prompts:
 							prompt = prompt.format(subject=subject)
@@ -122,7 +120,7 @@ def test_significant_conflict(
 
 		if for_loop_idx is None or for_loop_idx == 1:
 			for subj_idx, subject in tqdm(enumerate(animal_subjects), desc="For all animal subjects"):
-				if init_subject_idx is None or subj_idx > init_subject_idx:
+				if init_subject_idx is None or subj_idx >= init_subject_idx:
 					for subject2 in human_subjects:
 						for prompt, mask_prompt, focus_tokens in human_prompts:
 							prompt = prompt.format(subject=subject)
@@ -161,9 +159,9 @@ def main():
 	eval = EvalModel(args.control)
 	inference = eval.get_inference_func(args.modelType)
 
-	test_no_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx)
-	test_mild_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx)
-	test_significant_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx)
+	# test_no_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx)
+	# test_mild_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx)
+	test_significant_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
 
 
 if __name__ == "__main__":
