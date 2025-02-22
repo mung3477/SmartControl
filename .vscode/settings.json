@@ -1,7 +1,11 @@
 {
 	"files.exclude": {
 		"**/.venv": true,
+		"**/eval_env": true,
 		"**/output": true,
 		"**/log": true,
+		"**/train": true,
+		"**/models": true,
+		"**/ip_adapter": true
 	}
 }
