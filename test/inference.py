@@ -185,7 +185,7 @@ class EvalModel():
 		save_attention_maps(
 			self.pipe.unet.attn_maps,
 			self.pipe.tokenizer,
-			base_dir=f"{os.getcwd()}/log/attn_maps/{self.modelType.name}//{output_name}/{mask_prompt}",
+			base_dir=f"{os.getcwd()}/log/attn_maps/{self.modelType.name}/{output_name}/{mask_prompt}",
 			prompts=[mask_prompt],
 			options={
 				"prefix": "",
@@ -208,7 +208,7 @@ class EvalModel():
 		output = self.pipe(
 			prompt=prompt,
 			mask_prompt=mask_prompt,
-			focus_prompt = focus_tokens,
+			focus_tokens = focus_tokens,
 			image=control_img,
 			prepare_phase=False
 		).images[0]

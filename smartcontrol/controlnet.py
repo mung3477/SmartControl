@@ -109,7 +109,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 
 		return down_block_res_samples, mid_block_res_sample, None
 
-	def infer_alpha_mask(self, output_name: str, timestep: int, cond_prompt_attns: dict, gen_prompt_attns: dict, trgt_tokens: AttnDiffTrgtTokens):
+	def infer_alpha_mask(self, output_name: str, timestep: int, mask_prompt_attns: dict, gen_prompt_attns: dict, trgt_tokens: AttnDiffTrgtTokens):
 		to_pil = ToPILImage()
 		masks = {}
 		save_dir = f"log/alpha_masks/inferred/{output_name}/{timestep}"
@@ -153,7 +153,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			return torch.from_numpy(aggregated)
 
 		for trgt_block in COND_BLOCKS:
-			cond_attn = _aggregate_attns(cond_prompt_attns, trgt_block=trgt_block, tokens=cond_tokens)
+			cond_attn = _aggregate_attns(mask_prompt_attns, trgt_block=trgt_block, tokens=cond_tokens)
 			gen_attn = _aggregate_attns(gen_prompt_attns, trgt_block=trgt_block, tokens=gen_tokens)
 
 			avg_diff = cond_attn - gen_attn
@@ -170,9 +170,9 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		focus_indexes: List[List[int]] = list()
 
 		if hasattr(self, "tokenizer") and isinstance(self.tokenizer, CLIPTokenizer):
-			for bn, (prompt, focus_prompt) in enumerate(prompts):
+			for bn, (prompt, focus_tokens) in enumerate(prompts):
 				focus_indexes.append(list())
-				focus_tokens: List[int] = self.tokenizer([focus_prompt])['input_ids'][0][1: -1]
+				focus_tokens: List[int] = self.tokenizer([focus_tokens])['input_ids'][0][1: -1]
 				prompt_tokens: List[int] = self.tokenizer([prompt])['input_ids'][0]
 				if self.options["ignore_special_tkns"]:
 					prompt_tokens = prompt_tokens[1: -1]
@@ -230,7 +230,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		ip_adapter_image: Optional[PipelineImageInput] = None,
 		output_type: Optional[str] = "pil",
 		return_dict: bool = True,
-		focus_prompt: Optional[Union[str, List[str]]] = None,
+		focus_tokens: Optional[Union[str, List[str]]] = None,
 		cross_attention_kwargs: Optional[Dict[str, Any]] = None,
 		controlnet_conditioning_scale: Union[float, List[float]] = 1.0,
 		guess_mode: bool = False,
@@ -372,6 +372,12 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			)
 
 		# 1. Check inputs. Raise error if not correct
+		if "ignore_special_tkns" in self.options and self.options["ignore_special_tkns"] == True:
+			last_idx = len(self.tokenizer(prompt)['input_ids']) - 1
+			if prompt is not None and prompt_embeds is not None:
+				prompt = None
+
+
 		self.check_inputs(
 			prompt,
 			image,
@@ -594,11 +600,11 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 				"""
 				inferred_masks = None
 				if use_attn_diff is True:
-					_, _2, cond_prompt_attn = self.control_branch_forward(
+					_, _2, mask_prompt_attn = self.control_branch_forward(
 						control_model_input,
 						t,
 						prompt=condition_prompt,
-						encoder_hidden_states=cond_prompt_embeds,
+						encoder_hidden_states=mask_prompt_embeds,
 						controlnet_cond=image,
 						conditioning_scale=cond_scale,
 						guess_mode=guess_mode,
@@ -614,15 +620,15 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					inferred_masks = self.infer_alpha_mask(
 						output_name=output_name,
 						timestep=t,
-						cond_prompt_attns=cond_prompt_attn,
+						mask_prompt_attns=mask_prompt_attn,
 						gen_prompt_attns=gen_prompt_attn,
 						trgt_tokens=diff_phrases
 					)
 				"""
 
 				prev_t_attns = None
-				if focus_prompt is not None and "prepare_phase" in kwargs and kwargs["prepare_phase"] is False:
-					focus_indexes = self.get_focus_ids(list(zip([mask_prompt], [focus_prompt])))[0] # do not use batch implementation
+				if focus_tokens is not None and "prepare_phase" in kwargs and kwargs["prepare_phase"] is False:
+					focus_indexes = self.get_focus_ids(list(zip([mask_prompt], [focus_tokens])))[0] # do not use batch implementation
 					prev_t_attns = self.unet.attn_maps[timesteps[i].item()]
 					prev_t_attns = agg_by_blocks(prev_t_attns, focus_indexes)
 
@@ -636,7 +642,8 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					mid_block_res_sample = torch.cat([torch.zeros_like(mid_block_res_sample), mid_block_res_sample])
 
 				if "ignore_special_tkns" in self.options and self.options["ignore_special_tkns"] == True:
-					last_idx = len(self.tokenizer(prompt)['input_ids']) - 1
+					# Moved to the top before running input_check to support Ip Adapter
+     				# last_idx = len(self.tokenizer(prompt)['input_ids']) - 1
 
 					if cross_attention_kwargs is None:
 						cross_attention_kwargs = {'token_last_idx': last_idx}

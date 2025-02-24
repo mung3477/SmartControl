@@ -19,7 +19,7 @@ def make_img_name(args: argparse.Namespace) -> str:
 
 	if args.alpha_attn_prev:
 			alpha_map = "prev-timestep"
-			alpha_calc = f"{args.focus_prompt} token's mask on {args.cond_prompt}"
+			alpha_calc = f"{args.focus_tokens} token's mask on {args.mask_prompt}"
 			if args.alpha_fixed:
 				alpha_calc += f"-{str(args.alpha_mask)}-on-timestep-999"
 			else:
@@ -50,7 +50,7 @@ def make_img_name(args: argparse.Namespace) -> str:
 
 def check_args(args: argparse.Namespace):
 	if args.alpha_attn_diff is True:
-		assert hasattr(args, "cond_prompt"), "You should provide condition prompt to use alpha masks inferred with cross attention differences."
+		assert hasattr(args, "mask_prompt"), "You should provide condition prompt to use alpha masks inferred with cross attention differences."
 		assert hasattr(args, "gen_tkn"), "You should provide a token from generation prompt to calculate cross attention difference."
 		assert hasattr(args, "cond_tkn"), "You should provide a token from condition prompt to calculate cross attention difference."
 
@@ -59,30 +59,30 @@ def check_args(args: argparse.Namespace):
 			args.gen_phrase = args.prompt
 
 		if args.cond_phrase is None:
-			warnings.warn("\nYou should provide condition prompt phrase to use alpha masks inferred with cross attention differences. Set to cond_prompt.\n")
-			args.cond_phrase = args.cond_prompt
+			warnings.warn("\nYou should provide condition prompt phrase to use alpha masks inferred with cross attention differences. Set to mask_prompt.\n")
+			args.cond_phrase = args.mask_prompt
 
 
 		for token in args.gen_phrase.split():
 			assert token in args.prompt, f"{token} is not included in given generation prompt {args.prompt}"
 		for token in args.cond_phrase.split():
-			assert token in args.cond_prompt, f"{token} is not included in given condition prompt {args.cond_prompt}"
+			assert token in args.mask_prompt, f"{token} is not included in given condition prompt {args.mask_prompt}"
 
 		if args.ignore_special_tkns:
 			if args.gen_phrase == args.prompt:
 				warnings.warn("You are ignoring <sot> and <eot>, but the given prompt and gen phrase are same. This will make the cross attention value of the phrase to 0.25\n")
 
-			if args.cond_phrase == args.cond_prompt:
+			if args.cond_phrase == args.mask_prompt:
 				warnings.warn("You are ignoring <sot> and <eot>, but the given cond prompt and cond phrase are same. This will make the cross attention value of the phrase to 0.25\n")
 
-			if args.gen_phrase == args.prompt and args.cond_phrase == args.cond_prompt:
+			if args.gen_phrase == args.prompt and args.cond_phrase == args.mask_prompt:
 				warnings.warn("You are ignoring <sot> and <eot>, but you are using both prompts to calculate cross attention difference. This will make the difference almost ZERO\n")
 
 	if args.alpha_attn_prev is True:
-		assert args.cond_prompt is not None, "Condition prompt is needed"
-		assert args.focus_prompt is not None, "Focus prompt is needed"
-		for token in args.focus_prompt.split():
-			assert token in args.cond_prompt, f"{token} is not included in given generation prompt {args.cond_prompt}"
+		assert args.mask_prompt is not None, "Condition prompt is needed"
+		assert args.focus_tokens is not None, "Focus prompt is needed"
+		for token in args.focus_tokens.split():
+			assert token in args.mask_prompt, f"{token} is not included in given generation prompt {args.mask_prompt}"
 
 		if args.alpha_fixed is False:
 			warnings.warn("Current setting uses SmartControl on timestep 999.")
@@ -123,8 +123,8 @@ def parse_args():
 	parser.add_argument('--detector_path', type=str, default="lllyasviel/Annotators", help="Path to fetch pretrained control detector")
 	parser.add_argument('--seed', type=int, default=12345, help="Seed")
 	parser.add_argument('--prompt', type=str, required=True)
-	parser.add_argument('--focus_prompt', type=str, help="Substring of given generation prompt to use corresponding cross attention map as an alpha mask")
-	parser.add_argument('--cond_prompt', type=str, help="Prompt used to extract cross attention map")
+	parser.add_argument('--focus_tokens', type=str, help="Substring of given generation prompt to use corresponding cross attention map as an alpha mask")
+	parser.add_argument('--mask_prompt', type=str, help="Prompt used to extract cross attention map")
 	parser.add_argument('--ignore_special_tkns', action='store_true', default=False, help="Whether to ignore <sot> and <eot> while calculating cross attention differences")
 	parser.add_argument('--ref', type=str, help="A path to an image that will be used as a control", required=True)
 	parser.add_argument('--ip', type=str, default=None, help="A path to an image that will be used as an image prompt")

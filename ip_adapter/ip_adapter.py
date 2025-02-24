@@ -50,14 +50,14 @@ class MLPProjModel(torch.nn.Module):
     """SD model with image prompt"""
     def __init__(self, cross_attention_dim=1024, clip_embeddings_dim=1024):
         super().__init__()
-        
+
         self.proj = torch.nn.Sequential(
             torch.nn.Linear(clip_embeddings_dim, clip_embeddings_dim),
             torch.nn.GELU(),
             torch.nn.Linear(clip_embeddings_dim, cross_attention_dim),
             torch.nn.LayerNorm(cross_attention_dim)
         )
-        
+
     def forward(self, image_embeds):
         clip_extra_context_tokens = self.proj(image_embeds)
         return clip_extra_context_tokens
@@ -165,6 +165,10 @@ class IPAdapter:
         seed=None,
         guidance_scale=7.5,
         num_inference_steps=30,
+
+        mask_prompt=None,
+        focus_tokens=None,
+
         **kwargs,
     ):
         self.set_scale(scale)
@@ -206,6 +210,9 @@ class IPAdapter:
 
         generator = torch.Generator(self.device).manual_seed(seed) if seed is not None else None
         images = self.pipe(
+            prompt=prompt,
+            mask_prompt=mask_prompt,
+            focus_prompt=focus_tokens,
             prompt_embeds=prompt_embeds,
             negative_prompt_embeds=negative_prompt_embeds,
             guidance_scale=guidance_scale,
@@ -268,7 +275,7 @@ class IPAdapterXL(IPAdapter):
             negative_prompt_embeds = torch.cat([negative_prompt_embeds, uncond_image_prompt_embeds], dim=1)
 
         self.generator = torch.Generator(self.device).manual_seed(seed) if seed is not None else None
-        
+
         images = self.pipe(
             prompt_embeds=prompt_embeds,
             negative_prompt_embeds=negative_prompt_embeds,

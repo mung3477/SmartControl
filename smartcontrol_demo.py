@@ -19,7 +19,7 @@ device = "cuda"
 def use_prev_t_attn(args, control, pipe):
     image_name = make_img_name(args)
     pipe(
-        prompt=args.cond_prompt,
+        prompt=args.mask_prompt,
         image=control,
         # negative_prompt=negative_prompt_path,
         controlnet_conditioning_scale = args.controlnet_conditioning_scale,
@@ -31,8 +31,8 @@ def use_prev_t_attn(args, control, pipe):
     save_attention_maps(
         pipe.unet.attn_maps,
         pipe.tokenizer,
-        base_dir=f"log/attn_maps/{image_name}/{args.cond_prompt}",
-        prompts=[args.cond_prompt],
+        base_dir=f"log/attn_maps/{image_name}/{args.mask_prompt}",
+        prompts=[args.mask_prompt],
         options={
             "prefix": "",
             "return_dict": False,
@@ -52,8 +52,8 @@ def use_prev_t_attn(args, control, pipe):
 
     output = pipe(
         prompt=args.prompt,
-        mask_prompt=args.cond_prompt,
-        focus_prompt = args.focus_prompt,
+        mask_prompt=args.mask_prompt,
+        focus_tokens = args.focus_tokens,
         image=control,
         # negative_prompt=negative_prompt_path,
         controlnet_conditioning_scale = args.controlnet_conditioning_scale,

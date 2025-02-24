@@ -3,6 +3,7 @@ import torch
 from diffusers.models.attention import BasicTransformerBlock
 from diffusers.models.attention_processor import (AttnProcessor,
                                                   AttnProcessor2_0)
+from ip_adapter.attention_processor import (IPAttnProcessor2_0, CNAttnProcessor2_0)
 from diffusers.models.transformer_2d import Transformer2DModel
 from diffusers.models.unet_2d_condition import UNet2DConditionModel
 
@@ -18,6 +19,8 @@ def save_attn_map(module, module_name, save_loc, detach=True):
 		save_loc[timestep][module_name] = module.processor.attn_map.cpu() if detach \
 			else module.processor.attn_map
 
+		if module.processor.attn_map.dim() != 5:
+			import pudb; pudb.set_trace()
 		del module.processor.attn_map
 		torch.cuda.empty_cache()
 
@@ -37,6 +40,12 @@ def register_cross_attention_hook(model, target_name):
 		# if isinstance(module.processor, AttnProcessor):
 		#	module.processor.store_attn_map = True # type: ignore
 		if isinstance(module.processor, AttnProcessor2_0):
+			module.processor.store_attn_map = True
+
+		# IP ADAPTEr
+		if isinstance(module.processor, IPAttnProcessor2_0):
+			module.processor.store_attn_map = True
+		if isinstance(module.processor, CNAttnProcessor2_0):
 			module.processor.store_attn_map = True
 		"""
 		elif isinstance(module.processor, LoRAAttnProcessor):
