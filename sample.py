@@ -28,7 +28,7 @@ def test_no_conflict(
 					for prompt, mask_prompt, focus_tokens in human_prompts:
 						prompt = prompt.format(subject=subject)
 						mask_prompt = mask_prompt.format(condition_subject=subject)
-						focus_tokens = focus_tokens.format(condition_subject=subject)
+						focus_tokens = focus_tokens.format(condition_subject=subject.split(" ")[-1])
 						reference = f"{os.getcwd()}/assets/test/{subject}/{' '.join(prompt.split(' ')[2:])}.png"
 
 						output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
@@ -40,7 +40,7 @@ def test_no_conflict(
 					for prompt, mask_prompt, focus_tokens in animal_prompts:
 						prompt = prompt.format(subject=subject)
 						mask_prompt = mask_prompt.format(condition_subject=subject)
-						focus_tokens = focus_tokens.format(condition_subject=subject)
+						focus_tokens = focus_tokens.format(condition_subject=subject.split(" ")[-1])
 						reference = f"{os.getcwd()}/assets/test/{subject}/{' '.join(prompt.split(' ')[2:])}.png"
 
 						output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
@@ -73,7 +73,7 @@ def test_mild_conflict(
 						for prompt, mask_prompt, focus_tokens in human_prompts:
 							prompt = prompt.format(subject=subject)
 							mask_prompt = mask_prompt.format(condition_subject=subject2)
-							focus_tokens = focus_tokens.format(condition_subject=subject2)
+							focus_tokens = focus_tokens.format(condition_subject=subject2.split(" ")[-1])
 							reference = f"{os.getcwd()}/assets/test/{subject2}/{' '.join(prompt.split(' ')[2:])}.png"
 
 							output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
@@ -88,7 +88,7 @@ def test_mild_conflict(
 						for prompt, mask_prompt, focus_tokens in animal_prompts:
 							prompt = prompt.format(subject=subject)
 							mask_prompt = mask_prompt.format(condition_subject=subject2)
-							focus_tokens = focus_tokens.format(condition_subject=subject2)
+							focus_tokens = focus_tokens.format(condition_subject=subject2.split(" ")[-1])
 							reference = f"{os.getcwd()}/assets/test/{subject2}/{' '.join(prompt.split(' ')[2:])}.png"
 
 							output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
@@ -117,7 +117,7 @@ def test_significant_conflict(
 						for prompt, mask_prompt, focus_tokens in animal_prompts:
 							prompt = prompt.format(subject=subject)
 							mask_prompt = mask_prompt.format(condition_subject=subject2)
-							focus_tokens = focus_tokens.format(condition_subject=subject2)
+							focus_tokens = focus_tokens.format(condition_subject=subject2.split(" ")[-1])
 							reference = f"{os.getcwd()}/assets/test/{subject2}/{' '.join(prompt.split(' ')[2:])}.png"
 
 							output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
@@ -130,7 +130,7 @@ def test_significant_conflict(
 						for prompt, mask_prompt, focus_tokens in human_prompts:
 							prompt = prompt.format(subject=subject)
 							mask_prompt = mask_prompt.format(condition_subject=subject2)
-							focus_tokens = focus_tokens.format(condition_subject=subject2)
+							focus_tokens = focus_tokens.format(condition_subject=subject2.split(" ")[-1])
 							reference = f"{os.getcwd()}/assets/test/{subject2}/{' '.join(prompt.split(' ')[2:])}.png"
 
 							output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
@@ -166,8 +166,8 @@ def main():
 	inference = eval.get_inference_func(args.modelType)
 
 	# test_no_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx)
-	# test_mild_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx)
-	test_significant_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
+	test_mild_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx)
+	# test_significant_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
 
 
 if __name__ == "__main__":

@@ -11,3 +11,4 @@ log/**/*.png
 *.pt
 .DS_Store
 eval_env/*
+**/*.csv

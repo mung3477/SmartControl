@@ -145,25 +145,31 @@ class QuantitativeEval():
 		img_reward_score =  0.0 if img_reward is True else None
 		clip_score =  0.0 if clip is True else None
 
-		with open("images.txt", "w") as f:
-			for item in image_ref_prompt_pairs:
-				f.write(str(item) + "\n")
-
+		csv_file_path = f"{os.getcwd()}/test/self_sim_scores/self_sim_{log_name}.csv"
+		with open(csv_file_path, 'w', newline='') as csvfile:
+			writer = csv.writer(csvfile, delimiter='\t')
+			writer.writerow(["score", "name"])
 
 		for img_fp, ref_fp, prompt in tqdm(image_ref_prompt_pairs, desc="Evaluating images"):
 			if self_simil_score is not None:
-				self_simil_score += self.measure_self_sim(img_fp, ref_fp)
+				score = self.measure_self_sim(img_fp, ref_fp)
+
+				with open(csv_file_path, 'a', newline='') as csvfile:
+					writer = csv.writer(csvfile, delimiter='\t')
+					writer.writerow([str(score), "_".join(img_fp.split("/")[-2:])])
+
+				self_simil_score += score
 			if img_reward_score is not None:
 				img_reward_score += self.measure_img_rwd(img_fp, prompt)
 			if clip_score is not None:
 				clip_score += self.measure_clip_scr(img_fp, prompt)
 
 		if self_simil_score is not None:
-			self_simil_score /= len(image_ref_prompt_pairs) + 1
+			self_simil_score /= len(image_ref_prompt_pairs)
 		if img_reward_score is not None:
-			img_reward_score /= len(image_ref_prompt_pairs) + 1
+			img_reward_score /= len(image_ref_prompt_pairs)
 		if clip_score is not None:
-			clip_score /= len(image_ref_prompt_pairs) + 1
+			clip_score /= len(image_ref_prompt_pairs)
 
 		print(f"######### {log_name} ########")
 		if self_simil_score is not None:
