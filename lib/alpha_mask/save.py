@@ -73,8 +73,6 @@ def store_alpha_mask(module: Module, module_name: str, store_loc: dict, detach=T
 		store_loc[timestep][module_name] = module.alpha_mask.cpu() if detach \
 			else module.alpha_mask
 
-		del module.alpha_mask
-
 def register_alpha_map_hook(module: Module, module_name: str, store_loc: dict):
 	def hook_function(module: Module, name: str):
 		return lambda module, input, output: store_alpha_mask(

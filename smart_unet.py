@@ -336,7 +336,7 @@ def ca_forward(self, mask_options: AlphaOptions):
             # orig_sample = sample
             sample = sample + c * mid_block_additional_residual
 
-            if hasattr(self, "store_alpha_mask"):
+            if hasattr(self.mid_block, "store_alpha_mask"):
                 self.mid_block.alpha_mask = c
                 self.mid_block.timestep = int(timestep.item())
 

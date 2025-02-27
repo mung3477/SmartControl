@@ -98,9 +98,11 @@ class EvalModel():
 
 	def _is_already_generated(self, output_name, seed):
 		save_dir = f"{self.output_dir}/{self.modelType.name}/{output_name}"
-		target = f"{save_dir}/generated - seed {seed}.png"
+		filename = f"{save_dir}/generated using {self.control} - seed {seed}.png"
+		self.save_dir = save_dir
+		self.filename = filename
 
-		return os.path.exists(target)
+		return os.path.exists(filename)
 
 	def inference_ControlNet(self, prompt: str, reference: str, seed: int, alpha_mask: List[float] = [1.0], **kwargs):
 		output_name = f"ControlNet {alpha_mask} - {prompt} with {self._filepath2name(reference)}"
@@ -129,7 +131,7 @@ class EvalModel():
 	def inference_SmartControl(self, prompt: str, reference: str, seed: int, **kwargs):
 		output_name = f"SmartControl - {prompt} with {self._filepath2name(reference)}"
 		if self._is_already_generated(output_name, seed):
-			print(f"{output_name} - seed {seed} is already generated. Skipping.")
+			print(f"{self.filename} is already generated. Skipping.")
 			return None, None
 
 		control_img = self._prepare_control(reference)
@@ -185,7 +187,7 @@ class EvalModel():
 		save_attention_maps(
 			self.pipe.unet.attn_maps,
 			self.pipe.tokenizer,
-			base_dir=f"{os.getcwd()}/log/attn_maps/{self.modelType.name}//{output_name}/{mask_prompt}",
+			base_dir=f"{os.getcwd()}/log/attn_maps/{self.modelType.name}/{output_name}/{mask_prompt}",
 			prompts=[mask_prompt],
 			options={
 				"prefix": "",
@@ -213,21 +215,22 @@ class EvalModel():
 			prepare_phase=False
 		).images[0]
 
+		save_alpha_masks(self.pipe.unet.alpha_masks, f'{os.getcwd()}/log/alpha_masks/{self.modelType.name}/{output_name}')
+
 		return output, output_name
 
 	def postprocess(self, image, image_name, save_attn: bool = False):
 		if image is None or image_name is None:
 			return
 
-		save_dir = f"{self.output_dir}/{self.modelType.name}/{image_name}"
-		assert_path(save_dir)
-		image.save(f"{save_dir}/generated - seed {self.generate_param['seed']}.png")
+		assert_path(self.save_dir)
+		image.save(self.filename)
 		comparison = image_grid([
 		  		self.reference.resize((512, 512)),
 				self.control_img.resize((512, 512)),
 		 		image.resize((512, 512))
 		   ], 1, 3)
-		comparison.save(f"{save_dir}/control_result - seed {self.generate_param['seed']}.png")
+		comparison.save(f"{self.save_dir}/{self.control} control result - seed {self.generate_param['seed']}.png")
 
 		if save_attn:
 			save_attention_maps(
@@ -241,6 +244,5 @@ class EvalModel():
 				"ignore_special_tkns": self.generate_param["ignore_special_tkns"],
 				"enabled_editing_prompts": 0
 			})
-			save_alpha_masks(self.pipe.unet.alpha_masks, f'{os.getcwd()}/log/alpha_masks/{self.modelType.name}/{image_name}')
 
 		print(f"Saved results for {image_name}")
