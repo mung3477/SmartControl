@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import TypedDict
+from typing import List, TypedDict
 
 
 class ModelType(Enum):
@@ -34,3 +34,6 @@ class Selected(TypedDict):
 	prompt: str
 	mask_prompt: str
 	focus_tokens: str
+
+class SelectedMild(Selected):
+	subjects: List[str]

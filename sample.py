@@ -136,10 +136,11 @@ def test_significant_conflict(
 							output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
 							eval.postprocess(output, output_name, save_attn=save_attn)
 
-def test_selected_significant_conflict(
+
+def test_selected_mild_conflict(
 	eval: EvalModel,
 	inference: Callable,
-	output_dir: str = f"{os.getcwd()}/test/output/selected/significant_conflict",
+	output_dir: str = f"{os.getcwd()}/test/output/selected/mild_conflict",
 	alpha_mask: str = "1",
 	save_attn: bool = False,
 	seed_idx: Optional[int] = None,
@@ -153,16 +154,16 @@ def test_selected_significant_conflict(
 			continue
 
 		if for_loop_idx is None or for_loop_idx == 0:
-			for subj_idx, subject in tqdm(enumerate(animal_subjects), desc="For all animal subjects"):
-				if init_subject_idx is None or subj_idx >= init_subject_idx:
-					for situation in selected['sig']:
-						prompt = situation['prompt'].format(subject=subject)
-						mask_prompt = situation['mask_prompt']
-						focus_tokens = situation['focus_tokens']
-						reference = f"{os.getcwd()}/assets/test/{situation['ref']}"
+					for situation in selected['mild']:
+						for subject in situation['subjects']:
+							prompt = situation['prompt'].format(subject=subject)
+							mask_prompt = situation['mask_prompt']
+							focus_tokens = situation['focus_tokens']
+							reference = f"{os.getcwd()}/assets/test/{situation['ref']}"
 
-						output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
-						eval.postprocess(output, output_name, save_attn=save_attn)
+							output, output_name = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
+							eval.postprocess(output, output_name, save_attn=save_attn)
+
 
 def parse_args():
 	parser = argparse.ArgumentParser()
@@ -192,7 +193,7 @@ def main():
 	# test_no_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx)
 	# test_mild_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx)
 	# test_significant_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
-	test_selected_significant_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
-
+	# test_selected_significant_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
+	test_selected_mild_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
 if __name__ == "__main__":
     main()

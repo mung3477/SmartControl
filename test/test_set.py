@@ -1,5 +1,6 @@
-from typing import List, Dict
-from .types import Selected
+from typing import Dict, List, Union
+
+from .types import Selected, SelectedMild
 
 seeds = [1, 23, 42, 777, 12345]
 
@@ -40,7 +41,7 @@ animal_prompts = [
     ("{subject} is climbing a tree", "{condition_subject} is climbing a tree", "{condition_subject} climbing a tree"),
 ]
 
-selected: Dict[str, List[Selected]] = {
+selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
     "sig": [
         {
             "ref": "selected/meditating.jpeg",
@@ -102,10 +103,102 @@ selected: Dict[str, List[Selected]] = {
             "mask_prompt": "A man is playing soccer",
             "focus_tokens": "playing soccer"
         }
+    ],
+    "mild": [
+        {
+            "ref": "selected/mild/apple on table.jpg",
+            "prompt": "A {subject} on a table",
+            "subjects": ["apple", "strawberry", "pineapple"],
+            "mask_prompt": "A apple on a table",
+            "focus_tokens": "apple on"
+        },
+        {
+            "ref": "selected/mild/car driving down.jpg",
+            "prompt": "{subject} driving down a road",
+            "subjects": ["car", "pick-up truck", "tractor"],
+            "mask_prompt": "car driving down a road",
+            "focus_tokens": "car driving"
+        },
+        {
+            "ref": "selected/mild/cat ride bike.jpg",
+            "prompt": "A cat riding a {subject}",
+            "subjects": ["bike", "motorcycle", "car"],
+            "mask_prompt": "A cat riding a bike",
+            "focus_tokens": "cat riding"
+        },
+        {
+            "ref": "selected/mild/cup on desk.jpg",
+            "prompt": "A {subject} sitting on a desk",
+            "subjects": ["cup", "vase", "candle"],
+            "mask_prompt": "A cup on a desk",
+            "focus_tokens": "cup on"
+        },
+        {
+            "ref": "selected/mild/deer standing.jpg",
+            "prompt": "A {subject} standing in a field",
+            "subjects": ["deer", "wolf", "corgi"],
+            "mask_prompt": "A deer standing in a field",
+            "focus_tokens": "deer standing"
+        },
+        {
+            "ref": "selected/mild/eagle on branch.jpg",
+            "prompt": "A {subject} on a branch",
+            "subjects": ["eagle", "parrot", "duck"],
+            "mask_prompt": "An eagle on a branch",
+            "focus_tokens": "eagle on"
+        },
+        {
+            "ref": "selected/mild/girl at pyramid.jpg",
+            "prompt": "A girl standing in front of {subject}",
+            "subjects": ["pyramid", "Arch of Triumph", "Sydney Opera House", "Taj Mahal", "Colosseum in Rome"],
+            "mask_prompt": "A girl standing in front of pyramid",
+            "focus_tokens": "pyramid"
+        },
+        {
+            "ref": "selected/mild/hulk in city.jpg",
+            "prompt": "{subject} in a destroyed city",
+            "subjects": ["hulk", "spiderman", "obama"],
+            "mask_prompt": "hulk in a destoyed city",
+            "focus_tokens": "hulk in"
+        },
+        {
+            "ref": "selected/mild/jerry.jpg",
+            "prompt": "{subject} at the beach",
+            "subjects": ["jerry", "pikachu", "Spongebob squarepants", "Winnie the pooh", "Micky mouse"],
+            "mask_prompt": "jerry at the room",
+            "focus_tokens": "jerry at"
+        },
+        {
+            "ref": "selected/mild/llama in field.jpg",
+            "prompt": "A {subject} standing in a field",
+            "subjects": ["llama", "deer", "pig"],
+            "mask_prompt": "A llama standing in a field",
+            "focus_tokens": "llama standing"
+        },
+        {
+            "ref": "selected/mild/pineapples.jpg",
+            "prompt": "Two {subject} on a towel",
+            "subjects": ["pineapples", "pears", "apples"],
+            "mask_prompt": "Two pineapples on a towel",
+            "focus_tokens": "Two pineapples on"
+        },
+        {
+            "ref": "selected/mild/squirrel blocks.jpg",
+            "prompt": "A {subject} playing with blocks",
+            "subjects": ["squirrel", "hedgehog", "horse"],
+            "mask_prompt": "A squirrel playing with blocks",
+            "focus_tokens": "squirrel playing"
+        },
     ]
 }
 
 """
+        {
+            "ref": "selected/Pray.jpg",
+            "prompt": "{subject} is praying",
+            "mask_prompt": "A woman is praying",
+            "focus_tokens": "praying"
+        },
         {
             "ref": "selected/salute.jpg",
             "prompt": "{subject} is saluting",
