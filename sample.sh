@@ -18,6 +18,7 @@ elif [[ "$1" == "SmartControl" ]]; then
 		python3 sample.py --CUDA_VISIBLE_DEVICES="2" --control="$control" --mode="SmartControl" --seed_idx=2
 	else
 		python3 sample.py --CUDA_VISIBLE_DEVICES="2" --control="$control" --mode="SmartControl"
+		python3 sample.py --CUDA_VISIBLE_DEVICES="2" --control="$control" --mode="ControlNet" --alpha_mask=0.4
 	fi
 else
 	if [[ "$2" == "distribute_seed" ]]; then

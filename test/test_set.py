@@ -22,7 +22,7 @@ human_prompts = [
     ("{subject} arms up", "{condition_subject} arms up", "{condition_subject} arms up"),
 ]
 
-animal_subjects = ["a dog", "a cat", "a bear", "a fox", "a penguin", "a tiger", "an otter", "a capybara"]
+animal_subjects = ["a dog", "a cat", "a teddy bear", "an elephant", "a pikachu", "a pony", "a bird"]
 """
 animal_prompts = [
     ("{subject} is running", "{condition_subject} is running", "running"),
@@ -43,16 +43,74 @@ animal_prompts = [
 selected: Dict[str, List[Selected]] = {
     "sig": [
         {
-            "ref": "selected/doing deadlift.png",
-            "prompt": "{subject} is deadlifting",
-            "mask_prompt": "A man is deadlifting",
-            "focus_tokens": "deadlifting"
+            "ref": "selected/meditating.jpeg",
+            "prompt": "{subject} is sitting in a park",
+            "mask_prompt": "A man is sitting in a park",
+            "focus_tokens": "sitting in"
         },
         {
-            "ref": "selected/shooting.png",
-            "prompt": "{subject} is shooting a pistol in one hand",
-            "mask_prompt": "A man is shooting a pistol in one hand",
-            "focus_tokens": "shooting pistol"
+            "ref": "selected/pray.jpeg",
+            "prompt": "{subject} is praying in a church",
+            "mask_prompt": "A woman is praying in a church",
+            "focus_tokens": "praying in"
+        },
+        {
+            "ref": "selected/cooking.webp",
+            "prompt": "{subject} is cooking vegetables",
+            "mask_prompt": "A man is cooking vegetables",
+            "focus_tokens": "cooking vegetables"
+        },
+        {
+            "ref": "selected/dancing at party.jpeg",
+            "prompt": "{subject} is dancing at a party",
+            "mask_prompt": "A woman is dancing at a party",
+            "focus_tokens": "dancing at"
+        },
+        {
+            "ref": "selected/DJing at club.jpeg",
+            "prompt": "{subject} is DJing at the club",
+            "mask_prompt": "A man is DJing at the club",
+            "focus_tokens": "DJing at"
+        },
+        {
+            "ref": "selected/doing taekwondo.jpeg",
+            "prompt": "{subject} is doing taekwondo",
+            "mask_prompt": "A girl is doing taekwondo",
+            "focus_tokens": "doing taekwondo"
+        },
+        {
+            "ref": "selected/play ice hockey.jpeg",
+            "prompt": "{subject} is playing ice hockey",
+            "mask_prompt": "A man is playing ice hockey",
+            "focus_tokens": "playing ice hockey"
+        },
+        {
+            "ref": "selected/play tennis.jpeg",
+            "prompt": "{subject} is playing tennis",
+            "mask_prompt": "A girl is playing tennis",
+            "focus_tokens": "playing tennis"
+        },
+        {
+            "ref": "selected/riding a bike.png",
+            "prompt": "{subject} is riding a bike",
+            "mask_prompt": "A woman is riding a bike",
+            "focus_tokens": "riding bike"
+        },
+        {
+            "ref": "selected/soccer.jpeg",
+            "prompt": "{subject} is playing soccer",
+            "mask_prompt": "A man is playing soccer",
+            "focus_tokens": "playing soccer"
+        }
+    ]
+}
+
+"""
+        {
+            "ref": "selected/salute.jpg",
+            "prompt": "{subject} is saluting",
+            "mask_prompt": "A man is saluting",
+            "focus_tokens": "saluting"
         },
         {
             "ref": "selected/yoga.jpg",
@@ -67,27 +125,17 @@ selected: Dict[str, List[Selected]] = {
             "focus_tokens": "doing handstand"
         },
         {
-            "ref": "selected/Meditate.jpg",
-            "prompt": "{subject} is meditating",
-            "mask_prompt": "A woman is meditating",
-            "focus_tokens": "meditating"
+            "ref": "selected/shooting.png",
+            "prompt": "{subject} is shooting a pistol in one hand",
+            "mask_prompt": "A man is shooting a pistol in one hand",
+            "focus_tokens": "shooting pistol"
         },
         {
-            "ref": "selected/salute.jpg",
-            "prompt": "{subject} is saluting",
-            "mask_prompt": "A man is saluting",
-            "focus_tokens": "saluting"
+            "ref": "selected/doing deadlift.png",
+            "prompt": "{subject} is deadlifting",
+            "mask_prompt": "A man is deadlifting",
+            "focus_tokens": "deadlifting"
         },
-               {
-            "ref": "selected/Pray.jpg",
-            "prompt": "{subject} is praying",
-            "mask_prompt": "A woman is praying",
-            "focus_tokens": "praying"
-        }
-    ]
-}
-
-"""
         {
             "ref": "selected/cheers.jpg",
             "prompt": "{subject} is toasting a cocktail to you",
