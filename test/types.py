@@ -31,6 +31,7 @@ class ConflictDegree(Enum):
 
 class Selected(TypedDict):
 	ref: str
+	ref_subj: str
 	prompt: str
 	mask_prompt: str
 	focus_tokens: str

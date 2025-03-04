@@ -3,9 +3,23 @@
 		"**/.venv": true,
 		"**/eval_env": true,
 		"**/output": true,
+		"**/human_eval": true,
 		"**/log": true,
 		"**/train": true,
 		"**/models": true,
 		"**/ip_adapter": true
-	}
+	},
+	"files.watcherExclude": {
+    "**/.git/objects/**": true,
+    "**/.git/subtree-cache/**": true,
+    "**/node_modules/*/**": true,
+		"**/.venv": true,
+		"**/eval_env": true,
+		"**/output": true,
+		"**/human_eval": true,
+		"**/log": true,
+		"**/train": true,
+		"**/models": true,
+		"**/ip_adapter": true
+  }
 }

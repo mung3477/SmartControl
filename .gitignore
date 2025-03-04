@@ -2,6 +2,7 @@
 **/__pycache__/*
 *.ckpt
 **/output/**/*.png
+**/human_eval/**/*.png
 log/**/*.png
 **/*.bin
 **/*.safetensors

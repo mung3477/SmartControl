@@ -23,7 +23,7 @@ human_prompts = [
     ("{subject} arms up", "{condition_subject} arms up", "{condition_subject} arms up"),
 ]
 
-animal_subjects = ["a dog", "a cat", "a teddy bear", "an elephant", "a pikachu", "a pony", "a bird"]
+animal_subjects = ["a dog", "a dog plushie", "a cat", "a panda", "a teddy bear", "a polar bear", "a squirrel", "an elephant", "a fox", "a gorilla"]
 """
 animal_prompts = [
     ("{subject} is running", "{condition_subject} is running", "running"),
@@ -44,69 +44,59 @@ animal_prompts = [
 selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
     "sig": [
         {
-            "ref": "selected/meditating.jpeg",
-            "prompt": "{subject} is sitting in a park",
-            "mask_prompt": "A man is sitting in a park",
-            "focus_tokens": "sitting in"
+            "ref": "selected/Guitar.png",
+            "ref_subj": "a man",
+            "prompt": "{subject} is holding the guitar",
+            "mask_prompt": "A man is holding the guitar",
+            "focus_tokens": "holding guitar"
         },
         {
             "ref": "selected/pray.jpeg",
+            "ref_subj": "a woman",
             "prompt": "{subject} is praying in a church",
             "mask_prompt": "A woman is praying in a church",
             "focus_tokens": "praying in"
         },
         {
-            "ref": "selected/cooking.webp",
-            "prompt": "{subject} is cooking vegetables",
-            "mask_prompt": "A man is cooking vegetables",
-            "focus_tokens": "cooking vegetables"
-        },
-        {
-            "ref": "selected/dancing at party.jpeg",
-            "prompt": "{subject} is dancing at a party",
-            "mask_prompt": "A woman is dancing at a party",
-            "focus_tokens": "dancing at"
-        },
-        {
-            "ref": "selected/DJing at club.jpeg",
-            "prompt": "{subject} is DJing at the club",
-            "mask_prompt": "A man is DJing at the club",
-            "focus_tokens": "DJing at"
-        },
-        {
-            "ref": "selected/doing taekwondo.jpeg",
-            "prompt": "{subject} is doing taekwondo",
-            "mask_prompt": "A girl is doing taekwondo",
-            "focus_tokens": "doing taekwondo"
-        },
-        {
-            "ref": "selected/play ice hockey.jpeg",
-            "prompt": "{subject} is playing ice hockey",
-            "mask_prompt": "A man is playing ice hockey",
-            "focus_tokens": "playing ice hockey"
+            "ref": "selected/sword.jpeg",
+            "ref_subj": "a man",
+            "prompt": "{subject} is holding a sword",
+            "mask_prompt": "A man is holding a sword",
+            "focus_tokens": "holding sword"
         },
         {
             "ref": "selected/play tennis.jpeg",
+            "ref_subj": "a girl",
             "prompt": "{subject} is playing tennis",
             "mask_prompt": "A girl is playing tennis",
             "focus_tokens": "playing tennis"
         },
         {
             "ref": "selected/riding a bike.png",
+            "ref_subj": "a woman",
             "prompt": "{subject} is riding a bike",
             "mask_prompt": "A woman is riding a bike",
             "focus_tokens": "riding bike"
         },
         {
-            "ref": "selected/soccer.jpeg",
-            "prompt": "{subject} is playing soccer",
-            "mask_prompt": "A man is playing soccer",
-            "focus_tokens": "playing soccer"
-        }
+            "ref": "selected/yoga.jpg",
+            "ref_subj": "a man",
+            "prompt": "{subject} is stretching it's arms left and right",
+            "mask_prompt": "A man is stretching his arms left and right",
+            "focus_tokens": "stretching arms"
+        },
+        {
+            "ref": "selected/Cheer.jpg",
+            "ref_subj": "a man",
+            "prompt": "{subject} with both arms gesture",
+            "mask_prompt": "A man with both arms gesture",
+            "focus_tokens": "both arms gesture"
+        },
     ],
     "mild": [
         {
             "ref": "selected/mild/apple on table.jpg",
+            "ref_subj": "apple",
             "prompt": "A {subject} on a table",
             "subjects": ["apple", "strawberry", "pineapple"],
             "mask_prompt": "A apple on a table",
@@ -114,6 +104,7 @@ selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
         },
         {
             "ref": "selected/mild/car driving down.jpg",
+            "ref_subj": "car",
             "prompt": "{subject} driving down a road",
             "subjects": ["car", "pick-up truck", "tractor"],
             "mask_prompt": "car driving down a road",
@@ -121,6 +112,7 @@ selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
         },
         {
             "ref": "selected/mild/cat ride bike.jpg",
+            "ref_subj": "cat",
             "prompt": "A cat riding a {subject}",
             "subjects": ["bike", "motorcycle", "car"],
             "mask_prompt": "A cat riding a bike",
@@ -128,6 +120,7 @@ selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
         },
         {
             "ref": "selected/mild/cup on desk.jpg",
+            "ref_subj": "cup",
             "prompt": "A {subject} sitting on a desk",
             "subjects": ["cup", "vase", "candle"],
             "mask_prompt": "A cup on a desk",
@@ -135,6 +128,7 @@ selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
         },
         {
             "ref": "selected/mild/deer standing.jpg",
+            "ref_subj": "deer",
             "prompt": "A {subject} standing in a field",
             "subjects": ["deer", "wolf", "corgi"],
             "mask_prompt": "A deer standing in a field",
@@ -142,6 +136,7 @@ selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
         },
         {
             "ref": "selected/mild/eagle on branch.jpg",
+            "ref_subj": "eagle",
             "prompt": "A {subject} on a branch",
             "subjects": ["eagle", "parrot", "duck"],
             "mask_prompt": "An eagle on a branch",
@@ -149,6 +144,7 @@ selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
         },
         {
             "ref": "selected/mild/girl at pyramid.jpg",
+            "ref_subj": "pyramid",
             "prompt": "A girl standing in front of {subject}",
             "subjects": ["pyramid", "Arch of Triumph", "Sydney Opera House", "Taj Mahal", "Colosseum in Rome"],
             "mask_prompt": "A girl standing in front of pyramid",
@@ -156,6 +152,7 @@ selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
         },
         {
             "ref": "selected/mild/hulk in city.jpg",
+            "ref_subj": "hulk",
             "prompt": "{subject} in a destroyed city",
             "subjects": ["hulk", "spiderman", "obama"],
             "mask_prompt": "hulk in a destoyed city",
@@ -163,6 +160,7 @@ selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
         },
         {
             "ref": "selected/mild/jerry.jpg",
+            "ref_subj": "jerry",
             "prompt": "{subject} at the beach",
             "subjects": ["jerry", "pikachu", "Spongebob squarepants", "Winnie the pooh", "Micky mouse"],
             "mask_prompt": "jerry at the room",
@@ -170,6 +168,7 @@ selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
         },
         {
             "ref": "selected/mild/llama in field.jpg",
+            "ref_subj": "llama",
             "prompt": "A {subject} standing in a field",
             "subjects": ["llama", "deer", "pig"],
             "mask_prompt": "A llama standing in a field",
@@ -177,6 +176,7 @@ selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
         },
         {
             "ref": "selected/mild/pineapples.jpg",
+            "ref_subj": "pineapples",
             "prompt": "Two {subject} on a towel",
             "subjects": ["pineapples", "pears", "apples"],
             "mask_prompt": "Two pineapples on a towel",
@@ -184,6 +184,7 @@ selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
         },
         {
             "ref": "selected/mild/squirrel blocks.jpg",
+            "ref_subj": "squirrel",
             "prompt": "A {subject} playing with blocks",
             "subjects": ["squirrel", "hedgehog", "horse"],
             "mask_prompt": "A squirrel playing with blocks",
@@ -205,12 +206,7 @@ selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
             "mask_prompt": "A man is saluting",
             "focus_tokens": "saluting"
         },
-        {
-            "ref": "selected/yoga.jpg",
-            "prompt": "{subject} is stretching it's arms left and right",
-            "mask_prompt": "A man is stretching his arms left and right",
-            "focus_tokens": "stretching arms"
-        },
+
         {
             "ref": "selected/Handstand.jpg",
             "prompt": "{subject} is doing a handstand",
