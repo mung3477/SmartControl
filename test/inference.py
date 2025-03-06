@@ -154,9 +154,9 @@ class EvalModel():
 		return output
 
 	def inference_ControlAttend(self, prompt: str, reference: str, ref_subj: str, prmpt_subj: str, seed: int, mask_prompt, focus_tokens, **kwargs):
+
 		if self._is_already_generated(ref_subj, prmpt_subj, prompt, seed):
-			print(f"{self.filename} is already generated. Skipping.")
-			return None
+			print(f"{self.filename} is already generated. Overwriting.")
 
 		control_img = self._prepare_control(reference)
 
@@ -177,11 +177,14 @@ class EvalModel():
 
 		seed_everything(seed)
 
-		self.pipe(
+		spatial_sample = self.pipe(
 			prompt=mask_prompt,
 			image=control_img,
 			prepare_phase=True,
-		)
+		).images[0]
+		assert_path(self.save_dir)
+		spatial_sample.save(self.save_dir + "/spatial_sample.png")
+
 		save_attention_maps(
 			self.pipe.unet.attn_maps,
 			self.pipe.tokenizer,

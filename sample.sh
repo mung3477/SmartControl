@@ -24,6 +24,6 @@ else
 		python3 sample.py --CUDA_VISIBLE_DEVICES="1" --control="$control" --mode="ControlAttend" --init_subject_idx=0 &
 		python3 sample.py --CUDA_VISIBLE_DEVICES="2" --control="$control" --mode="ControlAttend" --init_subject_idx=4
 	else
-		python3 sample.py --CUDA_VISIBLE_DEVICES="1" --control="$control" --mode="ControlAttend"
+		python3 sample.py --CUDA_VISIBLE_DEVICES="1" --control="$control" --mode="ControlAttend" --seed_idx=0
 	fi
 fi

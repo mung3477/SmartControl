@@ -148,13 +148,13 @@ def test_selected_sig_conflict(
 ):
 	eval.set_output_dir(output_dir)
 
-	for i, seed in tqdm(enumerate(seeds), desc="For all seeds"):
+	for i, seed in tqdm(enumerate(seeds[1:2]), desc="For all seeds"):
 		if seed_idx is not None and i != seed_idx:
 			continue
 
 		if for_loop_idx is None or for_loop_idx == 0:
-					for situation in selected['sig']:
-						for subj_idx, subject in enumerate(animal_subjects):
+					for situation in selected['sig'][:1]:
+						for subj_idx, subject in enumerate(animal_subjects[:1]):
 							if init_subject_idx is None or subj_idx >= init_subject_idx:
 								prompt = situation['prompt'].format(subject=subject)
 								mask_prompt = situation['mask_prompt']
@@ -201,6 +201,7 @@ def parse_args():
 	parser.add_argument('--control', type=str, required=True, help="depth | pose | canny")
 	parser.add_argument('--model', type=str, default="ControlAttend", help="ControlNet | SmartControl | ControlAttend")
 	parser.add_argument('--alpha_mask', nargs="*", type=float, default=[1], help="Mask applied on inferred alpha. [1, 0, 0, 0] means only upper left is used with 1. None uses SmartControl's inferred alpha_mask.")
+	parser.add_argument('--save_attn', action='store_true', default=False)
 	parser.add_argument('--seed_idx', type=int, default=None)
 	parser.add_argument('--for_loop_idx', type=int, default=None)
 	parser.add_argument('--init_subject_idx', type=int, default=None)
@@ -222,7 +223,7 @@ def main():
 	# test_no_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx)
 	# test_mild_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx)
 	# test_significant_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
-	test_selected_sig_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
+	test_selected_sig_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, save_attn=args.save_attn, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
 	# test_selected_mild_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
 
 if __name__ == "__main__":

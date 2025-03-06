@@ -1,6 +1,7 @@
 import os
 from typing import Tuple, List, Optional
 import csv
+import shutil
 
 import clip
 import ImageReward as RM
@@ -125,6 +126,14 @@ class QuantitativeEval():
 		return all_image_pathes
 
 	@staticmethod
+	def get_all_sample_dirs(root: str):
+		leaf_dirs = []
+		for dirpath, dirnames, filenames in os.walk(root):
+			if not dirnames:  # Check if it's a leaf directory (no subdirectories)
+				leaf_dirs.append(dirpath)
+		return leaf_dirs
+
+	@staticmethod
 	def _record_as_csv(log_name: str, self_simil_score: Optional[float], img_reward_score: Optional[float], clip_score: Optional[float]):
 		csv_file_path = f"{os.getcwd()}/test/evaluation_scores.csv"
 		csv_columns = ["log_name", "self_similarity", "image_reward", "clip"]
@@ -180,3 +189,17 @@ class QuantitativeEval():
 			print(f"clip score: {clip_score}")
 
 		self._record_as_csv(log_name, self_simil_score, img_reward_score, clip_score)
+
+	def record_top_image_reward_file(self, root: str):
+		dirs = self.get_all_sample_dirs(root)
+		for dir in dirs:
+			image_reward_scores = []
+			files = [file for file in os.listdir(dir) if file.endswith(".png") and "result" not in file and "seed" in file]
+
+			for file in files:
+				prompt = dir.split("/")[-2]
+				image_reward_scores.append(self.measure_img_rwd(os.path.join(dir, file), prompt))
+			max_index = image_reward_scores.index(max(image_reward_scores))
+			shutil.copy(os.path.join(dir, files[max_index]), os.path.join(dir, f"top_image_reward.png"))
+			print(f"Marked {os.path.join(dir, files[max_index])} as the top image reward score image")
+
