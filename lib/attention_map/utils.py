@@ -50,6 +50,8 @@ def _average(agg_res: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
 
 			# mean multiple attention modules' results
 			agg[block][block_num] = attn.mean(dim=0)
+			# agg[block][block_num][agg[block][block_num] < 0.2] = 0
+			# agg[block][block_num][agg[block][block_num] > 0.2] = 0.4
 
 	return agg
 
@@ -87,6 +89,7 @@ def agg_by_blocks(attns: Dict[str, torch.Tensor], focus_indexes: List[int], agg_
 	agg = _aggregate(attns, focus_indexes)
 	post_process = _get_aggregation_function(agg_mode)
 	aggregated = post_process(agg)
+
 	return aggregated
 
 def agg_mode_str2enum(agg_mode: str):

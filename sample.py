@@ -31,8 +31,8 @@ def test_no_conflict(
 						focus_tokens = focus_tokens.format(condition_subject=subject.split(" ")[-1])
 						reference = f"{os.getcwd()}/assets/test/{subject}/{' '.join(prompt.split(' ')[2:])}.png"
 
-						output = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
-						eval.postprocess(output, save_attn=save_attn)
+						output = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens, save_attn=save_attn)
+						eval.postprocess(output, save_attn=False)
 
 		if for_loop_idx is None or for_loop_idx == 1:
 			for subj_idx, subject in tqdm(enumerate(animal_subjects), desc="For all human subjects"):
@@ -148,21 +148,25 @@ def test_selected_sig_conflict(
 ):
 	eval.set_output_dir(output_dir)
 
-	for i, seed in tqdm(enumerate(seeds[1:2]), desc="For all seeds"):
+	for i, seed in tqdm(enumerate(seeds), desc="For all seeds"):
 		if seed_idx is not None and i != seed_idx:
 			continue
 
 		if for_loop_idx is None or for_loop_idx == 0:
-					for situation in selected['sig'][:1]:
-						for subj_idx, subject in enumerate(animal_subjects[:1]):
+					for situation in selected['sig']:
+						for subj_idx, subject in enumerate(animal_subjects):
 							if init_subject_idx is None or subj_idx >= init_subject_idx:
 								prompt = situation['prompt'].format(subject=subject)
 								mask_prompt = situation['mask_prompt']
 								focus_tokens = situation['focus_tokens']
 								reference = f"{os.getcwd()}/assets/test/{situation['ref']}"
 
-								output = inference(prompt, reference, ref_subj=situation["ref_subj"], prmpt_subj=subject, seed=seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
+								output = inference(prompt, reference, ref_subj=situation["ref_subj"], prmpt_subj=subject, seed=seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens, save_attn=save_attn)
 								eval.postprocess(output, save_attn=save_attn)
+
+								# for alpha in range(0, 12, 2):
+								# 	output = inference(prompt, reference, ref_subj=situation["ref_subj"], prmpt_subj=subject, seed=seed, alpha_mask=[alpha * 0.1], mask_prompt=mask_prompt, focus_tokens=focus_tokens, save_attn=save_attn)
+								# 	eval.postprocess(output, save_attn=save_attn)
 
 
 def test_selected_mild_conflict(
@@ -190,8 +194,12 @@ def test_selected_mild_conflict(
 								focus_tokens = situation['focus_tokens']
 								reference = f"{os.getcwd()}/assets/test/{situation['ref']}"
 
-								output = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
+								output = inference(prompt, reference, ref_subj=situation["ref_subj"], prmpt_subj=subject, seed=seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
 								eval.postprocess(output, save_attn=save_attn)
+
+								# for alpha in range(0, 12, 2):
+								# 	output = inference(prompt, reference, seed, alpha_mask=[alpha * 0.1], prmpt_subj=subject, seed=seed, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
+								# 	eval.postprocess(output, save_attn=save_attn)
 
 
 def parse_args():
@@ -223,8 +231,8 @@ def main():
 	# test_no_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx)
 	# test_mild_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx)
 	# test_significant_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
-	test_selected_sig_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, save_attn=args.save_attn, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
-	# test_selected_mild_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
+	# test_selected_sig_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, save_attn=args.save_attn, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
+	test_selected_mild_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
 
 if __name__ == "__main__":
     main()
