@@ -1,8 +1,8 @@
 **/*.jpg
 **/__pycache__/*
 *.ckpt
-**/output/**/*.png
 **/human_eval/**/*.png
+**/*output*/**/*.png
 log/**/*.png
 **/*.bin
 **/*.safetensors
