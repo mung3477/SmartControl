@@ -21,14 +21,15 @@ def main():
 	os.environ["CUDA_VISIBLE_DEVICES"] = args.CUDA_VISIBLE_DEVICES
 
 	QE = QuantitativeEval()
-	images_info = QE.get_all_image_pathes(conflict_degree=args.conflict_degree, modelType=args.modelType)
-	QE.evaluate_results(
-     	log_name=f"{args.conflict_degree.name}-{args.modelType.name}",
-		image_ref_prompt_pairs=images_info,
-		self_simil=True,
-		img_reward=True,
-		clip=True
-    )
+	# images_info = QE.get_all_image_pathes(conflict_degree=args.conflict_degree, modelType=args.modelType)
+	# QE.evaluate_results(
+  #    	log_name=f"{args.conflict_degree.name}-{args.modelType.name}",
+	# 	image_ref_prompt_pairs=images_info,
+	# 	self_simil=True,
+	# 	img_reward=True,
+	# 	clip=True
+  #   )
+	QE.record_top_image_reward_file("/root/Desktop/workspace/Daewon/SmartControl/test/human_eval/significant")
 
 if __name__ == "__main__":
 	main()
