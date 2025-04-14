@@ -24,7 +24,8 @@ def scaled_dot_product_attention(query, key, value, attn_mask=None, dropout_p=0.
 		if attn_mask.dtype == torch.bool:
 			attn_mask.masked_fill_(attn_mask.logical_not(), float("-inf"))
 		else:
-			attn_bias += attn_mask
+			# attn_bias += attn_mask
+			attn_bias = attn_mask
 	attn_weight = query @ key.transpose(-2, -1) * scale_factor
 	attn_weight += attn_bias.to(attn_weight.device)
 	attn_weight = torch.softmax(attn_weight, dim=-1)
@@ -146,6 +147,16 @@ def attn_call2_0(
 		# scaled_dot_product_attention expects attention_mask shape to be
 		# (batch, heads, source_length, target_length)
 		attention_mask = attention_mask.view(batch_size, attn.heads, -1, attention_mask.shape[-1])
+	################################################
+	elif "attn_force_range" in kwargs and "attn_bias" in kwargs:
+		import pudb; pudb.set_trace()
+		attn_force_range = kwargs["attn_force_range"]
+		attn_bias = kwargs["attn_bias"]
+		attn_bias = attn_bias / len(attn_force_range)
+		attention_mask = torch.zeros((batch_size, attn.heads, height * width, sequence_length))
+		import pudb; pudb.set_trace()
+		attention_mask[:, :, :, attn_force_range[0]:attn_force_range[-1] + 1] = torch.stack([attn_bias] * len(attn_force_range), axis=-1)
+	################################################
 
 	if attn.group_norm is not None:
 		hidden_states = attn.group_norm(hidden_states.transpose(1, 2)).transpose(1, 2)
@@ -176,6 +187,10 @@ def attn_call2_0(
 			query, key, value, attn_mask=attention_mask, dropout_p=0.0, is_causal=False
 		)
 
+		if "attn_preserve_range" in kwargs:
+			preserve_range = kwargs["attn_preserve_range"]
+			self.attn_bias = attention_probs[:, :, :, preserve_range[0]:preserve_range[-1] + 1].mean(axis = -1)
+
 		if "token_last_idx" in kwargs:
 			""" re-weight the attention values by ignoring the attention of ⟨𝑠𝑜𝑡⟩ and <eot> """
 			attention_probs = attention_probs[:, :, :, 1:kwargs["token_last_idx"]]
@@ -185,6 +200,7 @@ def attn_call2_0(
 		attention_probs = rearrange(attention_probs, 'batch attn_head (h w) attn_dim -> batch attn_head h w attn_dim ', h=height) # detach height*width
 		self.attn_map = attention_probs
 		self.timestep = int(timestep.item())
+
 	else:
 		hidden_states = F.scaled_dot_product_attention(
 			query, key, value, attn_mask=attention_mask, dropout_p=0.0, is_causal=False

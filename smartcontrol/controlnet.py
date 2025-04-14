@@ -26,7 +26,8 @@ from transformers import (CLIPImageProcessor, CLIPTextModel, CLIPTokenizer,
 from lib import (COND_BLOCKS, AttnSaveOptions, EditGuidance,
                  SemanticStableDiffusionPipelineArgs, agg_by_blocks,
                  assert_path, default_option, prepare_image_bsz_modified,
-                 save_attention_maps, tokenize_and_mark_prompts)
+                 push_key_value, save_attention_maps,
+                 tokenize_and_mark_prompts)
 
 from .types import AttnDiffTrgtTokens
 
@@ -185,6 +186,21 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 
 		return focus_indexes
 
+	def _get_tokens_range(self, prompt, target):
+		"""Find the range of certain tokens' id in the prompt.
+		Args:
+			- prompt:
+		"""
+		prompt_tokenized: List = self.tokenizer(prompt)['input_ids']
+		target_tokenized: List = self.tokenizer(target)['input_ids'][1:-1]
+
+		tokens_range = range(
+			prompt_tokenized.index(target_tokenized[0]),
+			prompt_tokenized.index(target_tokenized[-1]) + 1
+		)
+
+		return tokens_range
+
 	def prepare_image(
 		self,
 		image,
@@ -340,6 +356,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 				second element is a list of `bool`s indicating whether the corresponding generated image contains
 				"not-safe-for-work" (nsfw) content.
 		"""
+		IS_PREPARE_PHASE = None if "prepare_phase" not in kwargs else kwargs["prepare_phase"]
 
 		callback = kwargs.pop("callback", None)
 		callback_steps = kwargs.pop("callback_steps", None)
@@ -621,7 +638,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 				"""
 
 				prev_t_attns = None
-				if focus_prompt is not None and "prepare_phase" in kwargs and kwargs["prepare_phase"] is False:
+				if focus_prompt is not None and IS_PREPARE_PHASE is False:
 					focus_indexes = self.get_focus_ids(list(zip([mask_prompt], [focus_prompt])))[0] # do not use batch implementation
 					prev_t_attns = self.unet.attn_maps[timesteps[i].item()]
 					prev_t_attns = agg_by_blocks(prev_t_attns, focus_indexes)
@@ -643,6 +660,18 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					else:
 						cross_attention_kwargs['token_last_idx'] = last_idx
 
+				attn_bias = None
+				if IS_PREPARE_PHASE is not None:
+					if IS_PREPARE_PHASE and "ref_subj" in self.options:
+						attn_preserve_range = self._get_tokens_range(prompt, self.options["ref_subj"])
+						cross_attention_kwargs = push_key_value(cross_attention_kwargs, "attn_preserve_range", attn_preserve_range)
+
+					if not IS_PREPARE_PHASE and "prmpt_subj" in self.options:
+						attn_force_range = self._get_tokens_range(prompt, self.options["prmpt_subj"])
+						cross_attention_kwargs = push_key_value(cross_attention_kwargs, "attn_force_range", attn_force_range)
+						attn_bias = self.unet.attn_bias[timesteps[i].item()]
+
+
 				# predict the noise residual
 				noise_pred = self.unet(
 					latent_model_input,
@@ -654,11 +683,12 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					mid_block_additional_residual=mid_block_res_sample,
 					# inferred_masks=inferred_masks,
 					prev_t_attns=prev_t_attns,
+					attn_bias=attn_bias,
 					added_cond_kwargs=added_cond_kwargs,
 					return_dict=False,
 				)[0]
 
-				if "prepare_phase" in kwargs and kwargs["prepare_phase"] is True and edit_args is not None:
+				if IS_PREPARE_PHASE and edit_args is not None:
 					noise_pred_uncond, noise_pred_text, *noise_pred_edit_concepts = noise_pred.chunk(latent_dup_num)
 
 					subject_conflict_degree = noise_pred_edit_concepts[0] - noise_pred_edit_concepts[1]

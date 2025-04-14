@@ -21,11 +21,27 @@ def save_attn_map(module, module_name, save_loc, detach=True):
 		del module.processor.attn_map
 		torch.cuda.empty_cache()
 
+def save_attn_bias(module, module_name, save_loc, detach=True):
+	block_name = ".".join(module_name.split(".")[1:3])
+	if hasattr(module.processor, "attn_bias"):
+		timestep = module.processor.timestep
+
+		save_loc[timestep] = save_loc.get(timestep, dict())
+		save_loc[timestep][block_name] = save_loc[timestep].get(block_name, list())
+
+		attn_bias = module.processor.attn_bias.cpu() if detach \
+			else module.processor.attn_bias
+		save_loc[timestep][block_name].append(attn_bias)
+
+		del module.processor.attn_bias
+
+
 def hook_function(model, name, detach=True):
 	assert hasattr(model, "attn_maps"), f"Attn map implanted module {model.__class__.__name__} should have a class variable `attn_maps` to store attention maps"
 
 	def forward_hook(module, input, output):
 		save_attn_map(module, module_name=name, save_loc=model.attn_maps, detach=detach)
+		save_attn_bias(module, name, model.attn_bias, detach=detach)
 	return forward_hook
 
 def register_cross_attention_hook(model, target_name):
@@ -95,6 +111,7 @@ def init_pipeline(pipeline):
 	for model in models:
 		# save attention maps in this class member
 		model.attn_maps = {}
+		model.attn_bias = {}
 		# attn2 processor takes charge of the cross-attention
 		model = register_cross_attention_hook(model, 'attn2')
 		model = replace_call_method_for_unet(model)

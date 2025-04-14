@@ -10,7 +10,9 @@ from pytorch_lightning import seed_everything
 from lib import (assert_path, image_grid, init_store_attn_map,
                  save_alpha_masks, save_attention_maps)
 from smartcontrol import SmartControlPipeline, register_unet
+
 from .types import ModelType
+
 
 class GenerateParam(TypedDict):
 	seed: int
@@ -161,7 +163,9 @@ class EvalModel():
 		control_img = self._prepare_control(reference)
 
 		pipe_options = {
-			"ignore_special_tkns": True
+			"ignore_special_tkns": True,
+			"ref_subj": ref_subj,
+			"prmpt_subj": prmpt_subj
 		}
 		self.pipe.options = pipe_options
 

@@ -164,7 +164,6 @@ def test_selected_sig_conflict(
 								output = inference(prompt, reference, ref_subj=situation["ref_subj"], prmpt_subj=subject, seed=seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
 								eval.postprocess(output, save_attn=save_attn)
 
-
 def test_selected_mild_conflict(
 	eval: EvalModel,
 	inference: Callable,
@@ -192,7 +191,6 @@ def test_selected_mild_conflict(
 
 								output = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
 								eval.postprocess(output, save_attn=save_attn)
-
 
 def parse_args():
 	parser = argparse.ArgumentParser()
@@ -222,7 +220,7 @@ def main():
 	# test_no_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx)
 	# test_mild_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx)
 	# test_significant_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
-	test_selected_sig_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
+	test_selected_sig_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx, save_attn=True)
 	# test_selected_mild_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
 
 if __name__ == "__main__":
