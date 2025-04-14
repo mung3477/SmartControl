@@ -527,6 +527,12 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			generator,
 			latents,
 		)
+		# if "prepare_phase" in kwargs and kwargs["prepare_phase"] is True:
+		# 	self.first_run_latents = latents.detach().clone()
+		# else:
+		# 	print("Initial latents are same: ", torch.equal(self.first_run_latents, latents))
+		# 	latents = self.first_run_latents
+
 
 		# 6.5 Optionally get Guidance Scale Embedding
 		timestep_cond = None

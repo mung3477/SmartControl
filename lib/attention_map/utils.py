@@ -34,7 +34,7 @@ def _aggregate(attns: Dict[str, torch.Tensor], focus_indexes: List[int]) -> Dict
 		if block_num not in agg[block_name]:
 			agg[block_name][block_num] = focused
 		else:
-			# a block can have multiple attention operators
+			# a block can have multiple attention modules
 			agg[block_name][block_num] = torch.cat((agg[block_name][block_num], focused))
 
 	return agg
@@ -48,8 +48,10 @@ def _average(agg_res: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
 			# mean multiple focus token's attention values
 			attn = attn.mean(dim=1)
 
-			# mean multiple attention operators' results
+			# mean multiple attention modules' results
 			agg[block][block_num] = attn.mean(dim=0)
+			# agg[block][block_num][agg[block][block_num] < 0.2] = 0
+			# agg[block][block_num][agg[block][block_num] > 0.2] = 0.4
 
 	return agg
 
@@ -60,7 +62,7 @@ def _normalize(agg_res: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
 		for block_num, attn in CAs.items():
 			assert isinstance(attn, torch.Tensor), "aggregation should return a dictionary who has a tensor as value"
 
-			# mean multiple attention operators' results
+			# mean multiple attention modules' results
 			attn = attn.mean(dim=0)
 			# cutoff each token's attention values
 			for i in range(attn.shape[0]):
@@ -86,7 +88,9 @@ def _get_aggregation_function(agg_mode: AggMode):
 def agg_by_blocks(attns: Dict[str, torch.Tensor], focus_indexes: List[int], agg_mode: AggMode = AggMode.Mean):
 	agg = _aggregate(attns, focus_indexes)
 	post_process = _get_aggregation_function(agg_mode)
-	return post_process(agg)
+	aggregated = post_process(agg)
+
+	return aggregated
 
 def agg_mode_str2enum(agg_mode: str):
 	if agg_mode == "norm":

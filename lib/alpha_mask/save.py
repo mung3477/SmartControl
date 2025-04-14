@@ -1,5 +1,7 @@
 import os
+import cv2
 
+from tqdm import tqdm
 import numpy as np
 import torch
 from torch import Size, Tensor
@@ -7,7 +9,7 @@ from torch.nn import Module
 from torch.nn import functional as F
 from torchvision.transforms import ToPILImage
 
-from ..utils import assert_path
+from ..utils import assert_path, gray2colormap
 
 
 def get_empty_mask(alpha_masks: dict, unconditional: bool):
@@ -29,11 +31,12 @@ def save_alpha_masks(alpha_masks: dict, base_dir='log/alpha_masks', unconditiona
 
 	assert_path(base_dir)
 
-	total_alpha_mask  = get_empty_mask(alpha_masks, unconditional=unconditional)
+	# total_alpha_mask  = get_empty_mask(alpha_masks, unconditional=unconditional)
+	total_alpha_mask = torch.zeros(1, 1, 512, 512)
 	total_alpha_mask_shape = total_alpha_mask.shape[-2:]
 	total_alpha_mask_num = 0
 
-	for timestep, layers in alpha_masks.items():
+	for timestep, layers in tqdm(alpha_masks.items(), desc="Saving alpha masks"):
 		timestep_dir = os.path.join(base_dir, f'{timestep}')
 		assert_path(timestep_dir)
 
@@ -41,7 +44,7 @@ def save_alpha_masks(alpha_masks: dict, base_dir='log/alpha_masks', unconditiona
 			layer_dir = os.path.join(timestep_dir, f'{layer}')
 			assert_path(layer_dir)
 
-			reshaped, resized = resize_alpha_mask(
+			_, resized = resize_alpha_mask(
 				alpha_mask,
 				size=total_alpha_mask_shape,
 				unconditional=unconditional
@@ -49,19 +52,23 @@ def save_alpha_masks(alpha_masks: dict, base_dir='log/alpha_masks', unconditiona
 			total_alpha_mask += resized
 			total_alpha_mask_num += 1
 
-			for batch, mask in enumerate(reshaped):
+			for batch, mask in enumerate(resized):
 				batch_dir = os.path.join(layer_dir, f'batch-{batch}')
 				assert_path(batch_dir)
 
-				to_pil(mask.to(torch.float32)).save(os.path.join(batch_dir, f"alpha_mask.png"))
-				np.savetxt(os.path.join(batch_dir, f"alpha_mask.txt"), mask.to(torch.float32).squeeze().numpy(), fmt="%.4f")
+				colormap = gray2colormap(mask.squeeze().to(torch.float32))
+				# colormap.save(os.path.join(batch_dir, f"alpha_mask.png"))
+				cv2.imwrite(os.path.join(batch_dir, f"alpha_mask.png"), colormap)
+				# np.savetxt(os.path.join(batch_dir, f"alpha_mask.txt"), mask.to(torch.float32).squeeze().numpy(), fmt="%.4f")
 
 	total_alpha_mask /= total_alpha_mask_num
 	for batch, mask in enumerate(total_alpha_mask):
 		batch_dir = os.path.join(base_dir, f'batch-{batch}')
 		assert_path(batch_dir)
 
-		to_pil(mask.to(torch.float32)).save(os.path.join(batch_dir, f"alpha_mask.png"))
+		colormap = gray2colormap(mask.squeeze().to(torch.float32))
+		# colormap.save(os.path.join(batch_dir, f"alpha_mask.png"))
+		cv2.imwrite(os.path.join(batch_dir, f"alpha_mask.png"), colormap)
 		np.savetxt(os.path.join(batch_dir, f"alpha_mask.txt"), mask.to(torch.float32).squeeze().numpy(), fmt="%.4f")
 
 

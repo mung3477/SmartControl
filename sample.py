@@ -1,11 +1,13 @@
 import argparse
 import os
 from test.inference import EvalModel
-from test.types import ModelType
 from test.test_set import (animal_prompts, animal_subjects, human_prompts,
-                           human_subjects, selected, seeds)
+                           human_subjects, seeds, selected)
+from test.types import ModelType
 from typing import Callable, Optional
+
 from tqdm import tqdm
+
 
 def test_no_conflict(
 	eval: EvalModel,
@@ -31,8 +33,8 @@ def test_no_conflict(
 						focus_tokens = focus_tokens.format(condition_subject=subject.split(" ")[-1])
 						reference = f"{os.getcwd()}/assets/test/{subject}/{' '.join(prompt.split(' ')[2:])}.png"
 
-						output = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
-						eval.postprocess(output, save_attn=save_attn)
+						output = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens, save_attn=save_attn)
+						eval.postprocess(output, save_attn=False)
 
 		if for_loop_idx is None or for_loop_idx == 1:
 			for subj_idx, subject in tqdm(enumerate(animal_subjects), desc="For all human subjects"):
@@ -161,8 +163,13 @@ def test_selected_sig_conflict(
 								focus_tokens = situation['focus_tokens']
 								reference = f"{os.getcwd()}/assets/test/{situation['ref']}"
 
-								output = inference(prompt, reference, ref_subj=situation["ref_subj"], prmpt_subj=subject, seed=seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
+								output = inference(prompt, reference, ref_subj=situation["ref_subj"], prmpt_subj=subject, seed=seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens, save_attn=save_attn)
 								eval.postprocess(output, save_attn=save_attn)
+
+								# for alpha in range(0, 12, 2):
+								# 	output = inference(prompt, reference, ref_subj=situation["ref_subj"], prmpt_subj=subject, seed=seed, alpha_mask=[alpha * 0.1], mask_prompt=mask_prompt, focus_tokens=focus_tokens, save_attn=save_attn)
+								# 	eval.postprocess(output, save_attn=save_attn)
+
 
 def test_selected_mild_conflict(
 	eval: EvalModel,
@@ -189,8 +196,13 @@ def test_selected_mild_conflict(
 								focus_tokens = situation['focus_tokens']
 								reference = f"{os.getcwd()}/assets/test/{situation['ref']}"
 
-								output = inference(prompt, reference, seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
+								output = inference(prompt, reference, ref_subj=situation["ref_subj"], prmpt_subj=subject, seed=seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
 								eval.postprocess(output, save_attn=save_attn)
+
+								# for alpha in range(0, 12, 2):
+								# 	output = inference(prompt, reference, seed, alpha_mask=[alpha * 0.1], prmpt_subj=subject, seed=seed, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
+								# 	eval.postprocess(output, save_attn=save_attn)
+
 
 def parse_args():
 	parser = argparse.ArgumentParser()
@@ -199,6 +211,7 @@ def parse_args():
 	parser.add_argument('--control', type=str, required=True, help="depth | pose | canny")
 	parser.add_argument('--model', type=str, default="ControlAttend", help="ControlNet | SmartControl | ControlAttend")
 	parser.add_argument('--alpha_mask', nargs="*", type=float, default=[1], help="Mask applied on inferred alpha. [1, 0, 0, 0] means only upper left is used with 1. None uses SmartControl's inferred alpha_mask.")
+	parser.add_argument('--save_attn', action='store_true', default=False)
 	parser.add_argument('--seed_idx', type=int, default=None)
 	parser.add_argument('--for_loop_idx', type=int, default=None)
 	parser.add_argument('--init_subject_idx', type=int, default=None)
