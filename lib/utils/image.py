@@ -1,8 +1,8 @@
 import os
 from typing import Tuple, TypedDict
 
-import numpy as np
 import cv2
+import numpy as np
 from PIL import Image, ImageChops, ImageDraw
 
 
@@ -46,6 +46,5 @@ def calc_diff(img1: Image.Image , img2: Image.Image, name: str):
 def gray2colormap(gray):
     gray_numpy = (gray * 255).byte().numpy()
     if gray_numpy.ndim != 2:
-        import pudb; pudb.set_trace()
-    colormap = cv2.applyColorMap(gray_numpy, cv2.COLORMAP_JET)
+        colormap = cv2.applyColorMap(gray_numpy, cv2.COLORMAP_JET)
     return colormap

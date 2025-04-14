@@ -149,12 +149,10 @@ def attn_call2_0(
 		attention_mask = attention_mask.view(batch_size, attn.heads, -1, attention_mask.shape[-1])
 	################################################
 	elif "attn_force_range" in kwargs and "attn_bias" in kwargs:
-		import pudb; pudb.set_trace()
 		attn_force_range = kwargs["attn_force_range"]
 		attn_bias = kwargs["attn_bias"]
 		attn_bias = attn_bias / len(attn_force_range)
 		attention_mask = torch.zeros((batch_size, attn.heads, height * width, sequence_length))
-		import pudb; pudb.set_trace()
 		attention_mask[:, :, :, attn_force_range[0]:attn_force_range[-1] + 1] = torch.stack([attn_bias] * len(attn_force_range), axis=-1)
 	################################################
 

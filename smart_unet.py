@@ -275,7 +275,6 @@ def ca_forward(self, mask_options: AlphaOptions):
                 ############################################
                 mid_block_CA_kwargs = copy.deepcopy(cross_attention_kwargs)
                 if attn_bias is not None:
-                    import pudb; pudb.set_trace()
                     mid_block_CA_kwargs["attn_bias"] = attn_bias["mid_block.attentions"][0]
                 ############################################
                 sample = self.mid_block(
@@ -381,7 +380,6 @@ def ca_forward(self, mask_options: AlphaOptions):
                 ############################################
                 up_block_CA_kwargs = copy.deepcopy(cross_attention_kwargs)
                 if attn_bias is not None:
-                    import pudb; pudb.set_trace()
                     up_block_CA_kwargs["attn_biases"] = attn_bias[f"up_blocks.{i}"]
                 ############################################
 
