@@ -99,9 +99,9 @@ class EvalModel():
 		return name
 
 
-	def _is_already_generated(self, ref_subj, prmpt_subj, prompt, seed, alpha_mask=[1.0]):
+	def _is_already_generated(self, ref_subj, prmpt_subj, prompt, seed, alpha_mask=[1.0], prefix=""):
 		save_dir = f"{self.output_dir}/{ref_subj}/{prmpt_subj}/{prompt}/{self.modelType.name}/{self.control}"
-		filename = f"{save_dir}/seed {seed}.png"
+		filename = f"{save_dir}/{prefix}seed {seed}.png"
 		if self.modelType.name == "ControlNet":
 			filename = f"{save_dir}/alpha {alpha_mask} - seed {seed}.png"
 
@@ -169,8 +169,12 @@ class EvalModel():
 		return output
 
 	def inference_ControlAttend(self, prompt: str, reference: str, ref_subj: str, prmpt_subj: str, seed: int, mask_prompt, focus_tokens, save_attn: bool = False, **kwargs):
-		if self._is_already_generated(ref_subj, prmpt_subj, prompt, seed):
+		use_attn_bias = "use_attn_bias" in kwargs and kwargs["use_attn_bias"] is True
+		filename_prefix = "" if "filename_prefix" not in kwargs else kwargs["filename_prefix"]
+
+		if self._is_already_generated(ref_subj, prmpt_subj, prompt, seed, prefix=filename_prefix):
 			print(f"{self.filename} is already generated. Overwriting.")
+
 
 		control_img = self._prepare_control(reference)
 
@@ -230,10 +234,11 @@ class EvalModel():
 			mask_prompt=mask_prompt,
 			focus_prompt = focus_tokens,
 			image=control_img,
-			prepare_phase=False
+			prepare_phase=False,
+			use_attn_bias=use_attn_bias
 		).images[0]
 
-		save_alpha_masks(self.pipe.unet.alpha_masks, f'{os.getcwd()}/log/alpha_masks/{self.modelType.name}/{prompt}')
+		# save_alpha_masks(self.pipe.unet.alpha_masks, f'{os.getcwd()}/log/alpha_masks/{self.modelType.name}/{prompt}')
 
 		return output
 

@@ -2,7 +2,7 @@ from typing import Dict, List, Union
 
 from .types import Selected, SelectedMild
 
-seeds = [1, 23, 42, 777, 12345][:1]
+seeds = [1, 23, 42, 777, 12345]
 
 human_subjects = ["a baby", "a child", "a woman", "a grandpa", "the spiderman"]
 # [prompt, mask_prompt, focus_tokens]
@@ -23,7 +23,7 @@ human_prompts = [
     ("{subject} arms up", "{condition_subject} arms up", "{condition_subject} arms up"),
 ]
 
-animal_subjects = ["a dog", "a dog plushie", "a cat", "a panda", "a teddy bear", "a polar bear", "a squirrel", "an elephant", "a fox", "a gorilla"][:1]
+animal_subjects = ["a dog", "a dog plushie", "a cat", "a panda", "a teddy bear", "a polar bear", "a squirrel", "an elephant", "a fox", "a gorilla"]
 """
 animal_prompts = [
     ("{subject} is running", "{condition_subject} is running", "running"),
@@ -43,6 +43,13 @@ animal_prompts = [
 
 selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
     "sig": [
+        {
+            "ref": "selected/Trumpet.png",
+            "ref_subj": "a man",
+            "prompt": "{subject} is playing the trumpet",
+            "mask_prompt": "A man is playing the trumpet",
+            "focus_tokens": "playing trumpet"
+        },
         {
             "ref": "selected/Guitar.png",
             "ref_subj": "a man",
@@ -92,7 +99,7 @@ selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
             "mask_prompt": "A man with both arms gesture",
             "focus_tokens": "both arms gesture"
         },
-    ][:1],
+    ],
     "mild": [
         {
             "ref": "selected/mild/apple on table.jpg",

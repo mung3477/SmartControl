@@ -256,6 +256,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		callback_on_step_end: Optional[Callable[[int, int, Dict], None]] = None,
 		callback_on_step_end_tensor_inputs: List[str] = ["latents"],
 
+		use_attn_bias: bool = False,
 		edit_args: Optional[SemanticStableDiffusionPipelineArgs] = None,
 		**kwargs,
 	):
@@ -527,11 +528,11 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			generator,
 			latents,
 		)
-		# if "prepare_phase" in kwargs and kwargs["prepare_phase"] is True:
-		# 	self.first_run_latents = latents.detach().clone()
-		# else:
-		# 	print("Initial latents are same: ", torch.equal(self.first_run_latents, latents))
-		# 	latents = self.first_run_latents
+		if IS_PREPARE_PHASE:
+			self.first_run_latents = latents.detach().clone()
+		elif IS_PREPARE_PHASE is False:
+			print("Initial latents are same: ", torch.equal(self.first_run_latents, latents))
+			latents = self.first_run_latents
 
 
 		# 6.5 Optionally get Guidance Scale Embedding
@@ -672,7 +673,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 						attn_preserve_range = self._get_tokens_range(prompt, self.options["ref_subj"])
 						cross_attention_kwargs = push_key_value(cross_attention_kwargs, "attn_preserve_range", attn_preserve_range)
 
-					if not IS_PREPARE_PHASE and "prmpt_subj" in self.options:
+					if not IS_PREPARE_PHASE and "prmpt_subj" in self.options and use_attn_bias:
 						attn_force_range = self._get_tokens_range(prompt, self.options["prmpt_subj"])
 						cross_attention_kwargs = push_key_value(cross_attention_kwargs, "attn_force_range", attn_force_range)
 						attn_bias = self.unet.attn_bias[timesteps[i].item()]

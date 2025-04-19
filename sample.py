@@ -147,6 +147,8 @@ def test_selected_sig_conflict(
 	seed_idx: Optional[int] = None,
 	for_loop_idx: Optional[int] = None,
 	init_subject_idx: Optional[int] = None,
+	use_attn_bias: bool = False,
+	filename_prefix: Optional[str] = None,
 ):
 	eval.set_output_dir(output_dir)
 
@@ -163,7 +165,10 @@ def test_selected_sig_conflict(
 								focus_tokens = situation['focus_tokens']
 								reference = f"{os.getcwd()}/assets/test/{situation['ref']}"
 
-								output = inference(prompt, reference, ref_subj=situation["ref_subj"], prmpt_subj=subject, seed=seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens, save_attn=save_attn)
+								output = inference(prompt, reference, ref_subj=situation["ref_subj"], prmpt_subj=subject,
+										seed=seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens,
+										save_attn=save_attn, use_attn_bias=use_attn_bias, filename_prefix=filename_prefix
+								)
 								eval.postprocess(output, save_attn=save_attn)
 
 								# for alpha in range(0, 12, 2):
@@ -233,7 +238,17 @@ def main():
 	# test_no_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx)
 	# test_mild_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx)
 	# test_significant_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
-	test_selected_sig_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx, save_attn=True)
+	test_selected_sig_conflict(
+		eval=eval,
+		inference=inference,
+		alpha_mask=args.alpha_mask,
+		seed_idx=args.seed_idx,
+		for_loop_idx=args.for_loop_idx,
+		init_subject_idx=args.init_subject_idx,
+		output_dir=f"{os.getcwd()}/test/human_eval/significant",
+		use_attn_bias=True,
+		filename_prefix="3x attn bias"
+	)
 	# test_selected_mild_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
 
 if __name__ == "__main__":

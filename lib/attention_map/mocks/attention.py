@@ -27,8 +27,22 @@ def scaled_dot_product_attention(query, key, value, attn_mask=None, dropout_p=0.
 			# attn_bias += attn_mask
 			attn_bias = attn_mask
 	attn_weight = query @ key.transpose(-2, -1) * scale_factor
-	attn_weight += attn_bias.to(attn_weight.device)
+	# attn_weight += attn_bias.to(attn_weight.device)
 	attn_weight = torch.softmax(attn_weight, dim=-1)
+	# attn_weight = torch.maximum(attn_weight, (attn_bias.half()).to(attn_weight.device))
+	if attn_bias is not None and attn_bias.sum() > 0:
+		reshaped_weight = attn_weight.reshape((*attn_weight.shape[:2], -1))
+		attn_weight_mean_per_head = reshaped_weight.sum(axis=-1) / (reshaped_weight > 0).sum(axis=-1).float()
+
+		reshaped_bias = attn_bias.reshape((*attn_bias.shape[:2], -1))
+		attn_bias_mean_per_head = reshaped_bias.sum(axis=-1) / (reshaped_bias > 0).sum(axis=-1).float()
+
+		scaler = attn_weight_mean_per_head / attn_bias_mean_per_head.to(attn_weight.device)
+		# scaler = 2 * (attn_weight[attn_bias > 0].mean(axis=-1) / attn_bias[attn_bias > 0].mean(axis=-1))		# # batch attn_head (h w) seq_len
+		if (scaler == 0).sum() > 0:
+			import pudb; pudb.set_trace()
+
+		attn_weight += 3 * scaler.reshape(*scaler.shape, 1, 1) * attn_bias.to(attn_weight.device)
 
 	return torch.dropout(attn_weight, dropout_p, train=True) @ value, attn_weight
 
@@ -187,7 +201,8 @@ def attn_call2_0(
 
 		if "attn_preserve_range" in kwargs:
 			preserve_range = kwargs["attn_preserve_range"]
-			self.attn_bias = attention_probs[:, :, :, preserve_range[0]:preserve_range[-1] + 1].mean(axis = -1)
+			self.attn_bias = attention_probs[:, :, :, preserve_range[0]:preserve_range[-1] + 1].mean(axis = -1)		# batch attn_head (h w)
+
 
 		if "token_last_idx" in kwargs:
 			""" re-weight the attention values by ignoring the attention of ⟨𝑠𝑜𝑡⟩ and <eot> """
