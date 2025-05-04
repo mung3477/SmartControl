@@ -9,6 +9,20 @@ from diffusers.utils import deprecate
 from einops import rearrange
 
 
+def _calc_head_by_head_mean_ratio(attn_weight: torch.Tensor, attn_bias: torch.Tensor):
+	reshaped_weight = attn_weight.reshape((*attn_weight.shape[:2], -1))
+	attn_weight_mean_per_head = reshaped_weight.sum(axis=-1) / (reshaped_weight > 0).sum(axis=-1).float()
+
+	reshaped_bias = attn_bias.reshape((*attn_bias.shape[:2], -1))
+	attn_bias_mean_per_head = reshaped_bias.sum(axis=-1) / (reshaped_bias > 0).sum(axis=-1).float()
+
+	scaler = attn_weight_mean_per_head / attn_bias_mean_per_head.to(attn_weight.device)
+	return scaler.reshape(*scaler.shape, 1, 1)
+
+def _calc_mean_ratio(attn_weight: torch.Tensor, attn_bias: torch.Tensor):
+	scaler = attn_weight[attn_bias > 0].mean(axis=-1) / attn_bias[attn_bias > 0].mean(axis=-1)
+	return scaler
+
 def scaled_dot_product_attention(query, key, value, attn_mask=None, dropout_p=0.0, is_causal=False, scale=None) -> torch.Tensor:
 	# Efficient implementation equivalent to the following:
 	L, S = query.size(-2), key.size(-2)
@@ -27,22 +41,11 @@ def scaled_dot_product_attention(query, key, value, attn_mask=None, dropout_p=0.
 			# attn_bias += attn_mask
 			attn_bias = attn_mask
 	attn_weight = query @ key.transpose(-2, -1) * scale_factor
-	# attn_weight += attn_bias.to(attn_weight.device)
 	attn_weight = torch.softmax(attn_weight, dim=-1)
-	# attn_weight = torch.maximum(attn_weight, (attn_bias.half()).to(attn_weight.device))
+
 	if attn_bias is not None and attn_bias.sum() > 0:
-		reshaped_weight = attn_weight.reshape((*attn_weight.shape[:2], -1))
-		attn_weight_mean_per_head = reshaped_weight.sum(axis=-1) / (reshaped_weight > 0).sum(axis=-1).float()
-
-		reshaped_bias = attn_bias.reshape((*attn_bias.shape[:2], -1))
-		attn_bias_mean_per_head = reshaped_bias.sum(axis=-1) / (reshaped_bias > 0).sum(axis=-1).float()
-
-		scaler = attn_weight_mean_per_head / attn_bias_mean_per_head.to(attn_weight.device)
-		# scaler = 2 * (attn_weight[attn_bias > 0].mean(axis=-1) / attn_bias[attn_bias > 0].mean(axis=-1))		# # batch attn_head (h w) seq_len
-		if (scaler == 0).sum() > 0:
-			import pudb; pudb.set_trace()
-
-		attn_weight += 3 * scaler.reshape(*scaler.shape, 1, 1) * attn_bias.to(attn_weight.device)
+		scaler = _calc_mean_ratio(attn_weight, attn_bias)
+		attn_weight += 3 * scaler * attn_bias.to(attn_weight.device)
 
 	return torch.dropout(attn_weight, dropout_p, train=True) @ value, attn_weight
 

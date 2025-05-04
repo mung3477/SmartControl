@@ -112,9 +112,9 @@ class EvalModel():
 
 	def inference_ControlNet(self, prompt: str, reference: str, ref_subj: str, prmpt_subj: str, seed: int, alpha_mask: List[float] = [1.0], **kwargs):
 		if self._is_already_generated(ref_subj, prmpt_subj, prompt, seed, alpha_mask):
-			# print(f"{self.filename} is already generated. Skipping.")
-			# return None
-			print(f"{self.filename} is already generated. Overwriting.")
+			print(f"{self.filename} is already generated. Skipping.")
+			return None
+			# print(f"{self.filename} is already generated. Overwriting.")
 
 		control_img = self._prepare_control(reference)
 		pipe_options = {
@@ -140,9 +140,9 @@ class EvalModel():
 
 	def inference_SmartControl(self, prompt: str, reference: str, ref_subj: str, prmpt_subj: str, seed: int, **kwargs):
 		if self._is_already_generated(ref_subj, prmpt_subj, prompt, seed):
-			# print(f"{self.filename} is already generated. Skipping.")
-			# return None
-			print(f"{self.filename} is already generated. Overwriting.")
+			print(f"{self.filename} is already generated. Skipping.")
+			return None
+			# print(f"{self.filename} is already generated. Overwriting.")
 
 		control_img = self._prepare_control(reference)
 		pipe_options = {
@@ -173,7 +173,9 @@ class EvalModel():
 		filename_prefix = "" if "filename_prefix" not in kwargs else kwargs["filename_prefix"]
 
 		if self._is_already_generated(ref_subj, prmpt_subj, prompt, seed, prefix=filename_prefix):
-			print(f"{self.filename} is already generated. Overwriting.")
+			# print(f"{self.filename} is already generated. Overwriting.")
+			print(f"{self.filename} is already generated. Skipping.")
+			# return
 
 
 		control_img = self._prepare_control(reference)
@@ -185,7 +187,7 @@ class EvalModel():
 		}
 		self.pipe.options = pipe_options
 
-		init_store_attn_map(self.pipe)
+		init_store_attn_map(self.pipe, use_attn_bias=use_attn_bias)
 		register_unet(
 			pipe=self.pipe,
 			smart_ckpt=None,
@@ -238,7 +240,8 @@ class EvalModel():
 			use_attn_bias=use_attn_bias
 		).images[0]
 
-		# save_alpha_masks(self.pipe.unet.alpha_masks, f'{os.getcwd()}/log/alpha_masks/{self.modelType.name}/{prompt}')
+		if save_attn:
+			save_alpha_masks(self.pipe.unet.alpha_masks, f'{os.getcwd()}/log/alpha_masks/{self.modelType.name}/{prompt}')
 
 		return output
 
@@ -269,4 +272,4 @@ class EvalModel():
 				"enabled_editing_prompts": 0
 			})
 
-		print(f"Saved results for {self.modelType.name}: {self.generate_param['prompt']}")
+		print(f"Saved results for {self.filename}")
