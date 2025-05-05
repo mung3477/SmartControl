@@ -12,3 +12,5 @@ log/**/*.png
 .DS_Store
 eval_env/*
 **/*.csv
+
+test_hilo
