@@ -23,7 +23,8 @@ human_prompts = [
     ("{subject} arms up", "{condition_subject} arms up", "{condition_subject} arms up"),
 ]
 
-animal_subjects = ["a dog", "a dog plushie", "a cat", "a panda", "a teddy bear", "a polar bear", "a squirrel", "an elephant", "a fox", "a gorilla"]
+# animal_subjects = ["a dog", "a dog plushie", "a cat", "a panda", "a teddy bear", "a polar bear", "a squirrel", "an elephant", "a fox", "a gorilla"]
+animal_subjects = ["a dog plushie", "a dog", "a cat", "a panda", "a teddy bear", "a polar bear", "a squirrel", "an elephant", "a fox", "a gorilla", "an owl"]
 """
 animal_prompts = [
     ("{subject} is running", "{condition_subject} is running", "running"),
@@ -44,18 +45,25 @@ animal_prompts = [
 selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
     "sig": [
         {
-            "ref": "selected/Trumpet.png",
-            "ref_subj": "a man",
-            "prompt": "{subject} is playing the trumpet",
-            "mask_prompt": "A man is playing the trumpet",
-            "focus_tokens": "playing trumpet"
-        },
-        {
             "ref": "selected/Guitar.png",
             "ref_subj": "a man",
             "prompt": "{subject} is holding the guitar",
             "mask_prompt": "A man is holding the guitar",
             "focus_tokens": "holding guitar",
+        },
+        {
+            "ref": "selected/play tennis.jpeg",
+            "ref_subj": "a girl",
+            "prompt": "{subject} is playing tennis",
+            "mask_prompt": "A girl is playing tennis",
+            "focus_tokens": "playing tennis"
+        },
+        {
+            "ref": "selected/Trumpet.png",
+            "ref_subj": "a man",
+            "prompt": "{subject} is playing the trumpet",
+            "mask_prompt": "A man is playing the trumpet",
+            "focus_tokens": "playing trumpet"
         },
         {
             "ref": "selected/pray.jpeg",
@@ -70,13 +78,6 @@ selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
             "prompt": "{subject} is holding a sword",
             "mask_prompt": "A man is holding a sword",
             "focus_tokens": "holding sword"
-        },
-        {
-            "ref": "selected/play tennis.jpeg",
-            "ref_subj": "a girl",
-            "prompt": "{subject} is playing tennis",
-            "mask_prompt": "A girl is playing tennis",
-            "focus_tokens": "playing tennis"
         },
         {
             "ref": "selected/riding a bike.png",
@@ -98,6 +99,55 @@ selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
             "prompt": "{subject} with both arms gesture",
             "mask_prompt": "A man with both arms gesture",
             "focus_tokens": "both arms gesture"
+        },
+        {
+            "ref": "selected/salute.jpg",
+            "prompt": "{subject} is saluting",
+            "ref_subj": "a man",
+            "mask_prompt": "A man is saluting",
+            "focus_tokens": "saluting"
+        },
+        {
+            "ref": "selected/Handstand.jpg",
+            "prompt": "{subject} is doing a handstand",
+            "ref_subj": "a woman",
+            "mask_prompt": "A woman is doing a handstand",
+            "focus_tokens": "doing handstand"
+        },
+        {
+            "ref": "selected/shooting.png",
+            "prompt": "{subject} is shooting a handgun",
+            "ref_subj": "a man",
+            "mask_prompt": "A man is shooting a handgun",
+            "focus_tokens": "shooting handgun"
+        },
+        {
+            "ref": "selected/doing deadlift.png",
+            "prompt": "{subject} is deadlifting",
+            "ref_subj": "a man",
+            "mask_prompt": "A man is deadlifting",
+            "focus_tokens": "deadlifting"
+        },
+        {
+            "ref": "selected/cheers.jpg",
+            "prompt": "{subject} is toasting a cocktail to you",
+            "ref_subj": "a man",
+            "mask_prompt": "A man is toasting a cocktail to you",
+            "focus_tokens": "toasting cocktail"
+        },
+        {
+            "ref": "selected/cooking.webp",
+            "prompt": "{subject} is cooking vegetables",
+            "ref_subj": "a man",
+            "mask_prompt": "A man is cooking vegetables",
+            "focus_tokens": "cooking vegetables"
+        },
+        {
+            "ref": "selected/waving.jpg",
+            "prompt": "{subject} is waving his hand",
+            "ref_subj": "a man",
+            "mask_prompt": "A man is waving his hand",
+            "focus_tokens": "waving hand"
         },
     ],
     "mild": [
@@ -249,6 +299,37 @@ selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
             "prompt": "{subject} is throwing a spear",
             "mask_prompt": "A man is throwing a spear",
             "focus_tokens": "throwing spear"
+        },
+        {
+            "ref": "selected/salute.jpg",
+            "prompt": "{subject} is saluting",
+            "mask_prompt": "A man is saluting",
+            "focus_tokens": "saluting"
+        },
+
+        {
+            "ref": "selected/Handstand.jpg",
+            "prompt": "{subject} is doing a handstand",
+            "mask_prompt": "A woman is doing a handstand",
+            "focus_tokens": "doing handstand"
+        },
+        {
+            "ref": "selected/shooting.png",
+            "prompt": "{subject} is shooting a pistol in one hand",
+            "mask_prompt": "A man is shooting a pistol in one hand",
+            "focus_tokens": "shooting pistol"
+        },
+        {
+            "ref": "selected/doing deadlift.png",
+            "prompt": "{subject} is deadlifting",
+            "mask_prompt": "A man is deadlifting",
+            "focus_tokens": "deadlifting"
+        },
+        {
+            "ref": "selected/cheers.jpg",
+            "prompt": "{subject} is toasting a cocktail to you",
+            "mask_prompt": "A man is toasting a cocktail to you",
+            "focus_tokens": "toasting cocktail"
         },
         {
             "ref": "selected/waving.jpg",

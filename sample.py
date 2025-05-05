@@ -179,12 +179,14 @@ def test_selected_sig_conflict(
 def test_selected_mild_conflict(
 	eval: EvalModel,
 	inference: Callable,
-	output_dir: str = f"{os.getcwd()}/test/output/selected/mild_conflict",
+	output_dir: str = f"{os.getcwd()}/test/human_eval/mild",
 	alpha_mask: str = "1",
 	save_attn: bool = False,
 	seed_idx: Optional[int] = None,
 	for_loop_idx: Optional[int] = None,
 	init_subject_idx: Optional[int] = None,
+	use_attn_bias: bool = False,
+	filename_prefix: Optional[str] = None,
 ):
 	eval.set_output_dir(output_dir)
 
@@ -201,7 +203,9 @@ def test_selected_mild_conflict(
 								focus_tokens = situation['focus_tokens']
 								reference = f"{os.getcwd()}/assets/test/{situation['ref']}"
 
-								output = inference(prompt, reference, ref_subj=situation["ref_subj"], prmpt_subj=subject, seed=seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens)
+								output = inference(prompt, reference, ref_subj=situation["ref_subj"], prmpt_subj=subject, seed=seed, alpha_mask=alpha_mask, mask_prompt=mask_prompt, focus_tokens=focus_tokens,
+									save_attn=save_attn, use_attn_bias=use_attn_bias, filename_prefix=filename_prefix
+								)
 								eval.postprocess(output, save_attn=save_attn)
 
 								# for alpha in range(0, 12, 2):
@@ -246,10 +250,24 @@ def main():
 		for_loop_idx=args.for_loop_idx,
 		init_subject_idx=args.init_subject_idx,
 		output_dir=f"{os.getcwd()}/test/human_eval/significant",
+		save_attn=False,
 		use_attn_bias=True,
-		filename_prefix="3x attn bias"
+		# filename_prefix="biased with triple of mean ratio "
+		filename_prefix=""
 	)
-	# test_selected_mild_conflict(eval=eval, inference=inference, alpha_mask=args.alpha_mask, seed_idx=args.seed_idx, for_loop_idx=args.for_loop_idx, init_subject_idx=args.init_subject_idx)
+	# test_selected_mild_conflict(
+	# 	eval=eval,
+	# 	inference=inference,
+	# 	alpha_mask=args.alpha_mask,
+	# 	seed_idx=args.seed_idx,
+	# 	for_loop_idx=args.for_loop_idx,
+	# 	init_subject_idx=args.init_subject_idx,
+	# 	# output_dir=f"{os.getcwd()}/test/human_eval/significant",
+	# 	save_attn=False,
+	# 	use_attn_bias=False,
+	# 	# filename_prefix="biased with mean ratio "
+	# 	# filename_prefix=""
+	# )
 
 if __name__ == "__main__":
     main()
