@@ -1,19 +1,19 @@
-import os
-from typing import Tuple, List, Optional
 import csv
+import os
 import shutil
+from typing import List, Optional, Tuple
 
 import clip
 import ImageReward as RM
 import torch
-from tqdm import tqdm
-
-from .evaluate_vit import VitExtractor
 from PIL import Image
 from torchvision import transforms
 from torchvision.transforms import Resize
+from tqdm import tqdm
 
-from .types import ModelType, ConflictDegree
+from .evaluate_vit import VitExtractor
+from .types import ConflictDegree, ModelType
+
 
 class QuantitativeEval():
 	@staticmethod
@@ -101,28 +101,63 @@ class QuantitativeEval():
 		return _fn
 
 	@staticmethod
-	def _get_promptNref_fp(dir_path: str):
-		[prompt, ref_fp] = dir_path.split("/")[-1].split(" with ")
-		prompt = prompt.split(" - ")[-1]
-		ref_fp = ref_fp.split(" focusing ")[0]
+	def _parse_filepath(fp: str):
+		parts = fp.split('/')
+		conflict_degree = parts[-6]  # mild
+		subject = parts[-5]         # subject
+		prompt_subject = parts[-4]  # prompt_subject
+		prompt = parts[-3]         # prompt
+		model = parts[-2]          # model
+		control = parts[-1]        # control
 
-		subject = " ".join(ref_fp.split(' ')[:2])
-		action = " ".join(ref_fp.split(' ')[2:])
-		ref_fp = f"{os.getcwd()}/assets/test/{subject}/{action}.png"
-
-		return (prompt, ref_fp)
+		return (conflict_degree, subject, prompt_subject, prompt, model, control)
 
 	@staticmethod
-	def get_all_image_pathes(conflict_degree: ConflictDegree, modelType: ModelType):
-		output_root = f"{os.getcwd()}/test/output/{conflict_degree.name}/{modelType.name}"
+	def _get_output_root(conflict_degree: ConflictDegree):
+		conflict = ConflictDegree.mild_conflict.name \
+			if conflict_degree == ConflictDegree.no_conflict \
+			else conflict_degree.name
+
+		return f"{os.getcwd()}/test/human_eval/{conflict}"
+
+	@staticmethod
+	def _get_cntl_img(conflict_degree: ConflictDegree, subject, prompt_subject, prompt):
+		conflict = ConflictDegree.mild_conflict.name \
+			if conflict_degree == ConflictDegree.no_conflict \
+			else conflict_degree.name
+		root_dir = f"{os.getcwd()}/assets/test/selected/{conflict}"
+		filename = f"{prompt.replace(prompt_subject, subject)}"
+		return f"{root_dir}/{filename}.jpg"
+
+	@staticmethod
+	def _is_same_conflict_degree(conflict_degree: ConflictDegree, subject: str, prompt_subject: str):
+		if conflict_degree == ConflictDegree.no_conflict:
+			return subject == prompt_subject
+		elif conflict_degree == ConflictDegree.mild_conflict:
+			return subject != prompt_subject
+		return True
+
+
+	@staticmethod
+	def get_all_image_pathes(conflict_degree: ConflictDegree, modelType: ModelType, bias: float, controlnet_alpha: float):
+		model_name = modelType.name
+		if bias != 0.0:
+			model_name = f"{model_name}-bias-{bias}"
+		output_root = QuantitativeEval._get_output_root(conflict_degree)
 		assert os.path.exists, f"{output_root} does not exist"
 
 		all_image_pathes = []   # (generated, refernce, prompt)
 		for root, _, files in os.walk(output_root):
 			for file in files:
-				if file.endswith(('.png')) and "generated" in file:
-					prompt, ref_fp = QuantitativeEval._get_promptNref_fp(root)
-					all_image_pathes.append((os.path.join(root, file), ref_fp, prompt))
+				if file.endswith('.png') and ("seed" in file) and ("result" not in file) and file[file.find("seed") + 5:-4].isdigit():
+					(_, subject, prompt_subject, prompt, model, control) \
+						= QuantitativeEval._parse_filepath(root)
+
+					if model == model_name and control == "depth" and \
+						(model_name != "ControlNet" or str(controlnet_alpha) in file) and \
+						QuantitativeEval._is_same_conflict_degree(conflict_degree, subject, prompt_subject):
+							cntl_img = QuantitativeEval._get_cntl_img(conflict_degree, subject, prompt_subject, prompt)
+							all_image_pathes.append((os.path.join(root, file), cntl_img, prompt))
 		return all_image_pathes
 
 	@staticmethod
@@ -159,6 +194,14 @@ class QuantitativeEval():
 			writer = csv.writer(csvfile, delimiter='\t')
 			writer.writerow(["score", "name"])
 
+		############ save all the pairs to debug ###################
+		pairs_csv_path = f"{os.getcwd()}/test/image_ref_prompt_pairs_{log_name}.csv"
+		with open(pairs_csv_path, 'w', newline='') as csvfile:
+			writer = csv.writer(csvfile, delimiter='\t')
+			writer.writerow(["image_path", "reference_path", "prompt"])
+			for img_fp, ref_fp, prompt in image_ref_prompt_pairs:
+				writer.writerow([img_fp, ref_fp, prompt])
+
 		for img_fp, ref_fp, prompt in tqdm(image_ref_prompt_pairs, desc="Evaluating images"):
 			if self_simil_score is not None:
 				score = self.measure_self_sim(img_fp, ref_fp)
@@ -175,10 +218,13 @@ class QuantitativeEval():
 
 		if self_simil_score is not None:
 			self_simil_score /= len(image_ref_prompt_pairs)
+			self_simil_score = round(self_simil_score, 4)
 		if img_reward_score is not None:
 			img_reward_score /= len(image_ref_prompt_pairs)
+			img_reward_score = round(img_reward_score, 4)
 		if clip_score is not None:
 			clip_score /= len(image_ref_prompt_pairs)
+			clip_score = round(clip_score, 4)
 
 		print(f"######### {log_name} ########")
 		if self_simil_score is not None:

@@ -38,3 +38,4 @@ class Selected(TypedDict):
 
 class SelectedMild(Selected):
 	subjects: List[str]
+

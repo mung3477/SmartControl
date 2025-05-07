@@ -1,1 +1,13 @@
-log_name self_similarity image_reward clip
+log_name	self_similarity	image_reward	clip
+no_conflict-ControlNet-bias-0.0	0.0393	0.9857	0.3044
+
+no_conflict-ControlAttend-bias-0.0	0.0804	1.301	0.3179
+no_conflict-ControlAttend-bias-1.0	0.0741	1.3579	0.3131
+no_conflict-ControlAttend-bias-3.0	0.079	1.0905	0.311
+mild_conflict-ControlAttend-bias-0.0	0.0971	1.4797	0.3314
+mild_conflict-ControlAttend-bias-1.0	0.097	1.3137	0.3295
+mild_conflict-ControlAttend-bias-3.0	0.0959	0.8086	0.3265
+significant_conflict-ControlAttend-bias-0.0	0.0816	0.8462	0.328
+no_conflict-SmartControl-bias-0.0	0.0553	1.1777	0.3081
+no_conflict-ControlNet-bias-0.0	0.0393	0.9857	0.3044
+mild_conflict-SmartControl-bias-0.0	0.0748	1.3761	0.3251
