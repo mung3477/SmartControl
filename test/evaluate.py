@@ -194,14 +194,6 @@ class QuantitativeEval():
 			writer = csv.writer(csvfile, delimiter='\t')
 			writer.writerow(["score", "name"])
 
-		############ save all the pairs to debug ###################
-		pairs_csv_path = f"{os.getcwd()}/test/image_ref_prompt_pairs_{log_name}.csv"
-		with open(pairs_csv_path, 'w', newline='') as csvfile:
-			writer = csv.writer(csvfile, delimiter='\t')
-			writer.writerow(["image_path", "reference_path", "prompt"])
-			for img_fp, ref_fp, prompt in image_ref_prompt_pairs:
-				writer.writerow([img_fp, ref_fp, prompt])
-
 		for img_fp, ref_fp, prompt in tqdm(image_ref_prompt_pairs, desc="Evaluating images"):
 			if self_simil_score is not None:
 				score = self.measure_self_sim(img_fp, ref_fp)

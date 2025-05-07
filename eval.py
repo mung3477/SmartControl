@@ -19,14 +19,27 @@ def parse_args():
 
 	return args
 
+def _get_log_name(args):
+	log_name=f"{args.conflict_degree.name}-{args.modelType.name}"
+
+	if args.modelType.name == "ControlNet":
+		log_name += f"-alpha-{args.controlnet_alpha}"
+
+	if args.modelType.name == "ControlAttend":
+		log_name += f"-bias-{args.attn_bias}"
+
+	return log_name
+
 def main():
 	args = parse_args()
 	os.environ["CUDA_VISIBLE_DEVICES"] = args.CUDA_VISIBLE_DEVICES
 
 	QE = QuantitativeEval()
 	images_info = QE.get_all_image_pathes(conflict_degree=args.conflict_degree, modelType=args.modelType, bias=args.attn_bias, controlnet_alpha=args.controlnet_alpha)
+	log_name = _get_log_name(args)
+
 	QE.evaluate_results(
-		log_name=f"{args.conflict_degree.name}-{args.modelType.name}-bias-{args.attn_bias}",
+		log_name=log_name,
 		image_ref_prompt_pairs=images_info,
 		self_simil=True,
 		img_reward=True,
