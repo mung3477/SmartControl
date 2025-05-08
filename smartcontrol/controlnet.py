@@ -23,13 +23,10 @@ from torchvision.transforms import ToPILImage
 from transformers import (CLIPImageProcessor, CLIPTextModel, CLIPTokenizer,
                           CLIPVisionModelWithProjection)
 
-from lib import (COND_BLOCKS, AttnSaveOptions, EditGuidance,
+from lib import (COND_BLOCKS, AttnSaveOptions,
                  SemanticStableDiffusionPipelineArgs, agg_by_blocks,
                  assert_path, default_option, prepare_image_bsz_modified,
-                 push_key_value, save_attention_maps,
-                 tokenize_and_mark_prompts)
-
-from .types import AttnDiffTrgtTokens
+                 push_key_value)
 
 logger = logging.get_logger(__name__)  # pylint: disable=invalid-name
 
@@ -60,7 +57,6 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			image_encoder=image_encoder,
 			requires_safety_checker=requires_safety_checker
 		)
-		# self.diff_threshold = diff_threshold
 		self.options = options
 		self.unet.alphas = {}
 
@@ -78,15 +74,11 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		output_name: str = None,
 		attn_options: AttnSaveOptions = default_option,
 	):
-		# last_idx = len(self.tokenizer(prompt)['input_ids']) - 1
-
 		if cross_attention_kwargs is None:
 			cross_attention_kwargs = {'timestep' : timestep}
 		else:
 			cross_attention_kwargs['timestep'] = timestep
 
-		# if self.ignore_special_tkns:
-		# 	cross_attention_kwargs['token_last_idx'] = last_idx
 		down_block_res_samples, mid_block_res_sample = self.controlnet(
 			sample,
 			timestep,
@@ -98,74 +90,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			return_dict=return_dict,
 		)
 
-		# timestep_key = timestep.item()
-		# organized = save_attention_maps(
-		# 	{timestep_key: self.controlnet.attn_maps[timestep_key]},
-		# 	self.tokenizer,
-		# 	base_dir=f"log/attn_maps/{output_name}",
-		# 	prompts=[prompt],
-		# 	options=attn_options
-		# )
-		# del self.controlnet.attn_maps[timestep_key]
-
 		return down_block_res_samples, mid_block_res_sample, None
-
-	def infer_alpha_mask(self, output_name: str, timestep: int, cond_prompt_attns: dict, gen_prompt_attns: dict, trgt_tokens: AttnDiffTrgtTokens):
-		to_pil = ToPILImage()
-		masks = {}
-		save_dir = f"log/alpha_masks/inferred/{output_name}/{timestep}"
-
-		assert_path(save_dir)
-
-		cond_tokens = tokenize_and_mark_prompts(
-			prompts=[trgt_tokens["cond"]],
-			tokenizer=self.tokenizer,
-			ignore_special_tokens=self.ignore_special_tkns
-		)[0]
-		gen_tokens = tokenize_and_mark_prompts(
-			prompts=[trgt_tokens["gen"]],
-			tokenizer=self.tokenizer,
-			ignore_special_tokens=self.ignore_special_tkns
-		)[0]
-
-		def _filter_dict_with_key(d: dict, substr: str):
-			return list(dict(filter(
-				lambda item: substr in item[0],
-				d.items()
-			)).values())
-
-		def _filter_attns(attns: dict, trgt_block: str, trgt_token: str):
-			blocks = _filter_dict_with_key(attns, trgt_block)
-			filtered_attns = [_filter_dict_with_key(block, trgt_token) for block in blocks]
-			return [attn for filtered in filtered_attns for attn in filtered]
-
-		def _aggregate_attns(attns: dict, trgt_block: str, tokens: List[str]):
-			aggregated = None
-
-			for token in tokens:
-				attn = _filter_attns(attns=attns, trgt_block=trgt_block, trgt_token=token)
-				block_avg_attn = np.array(attn).sum(axis=0) / len(attn)
-				if aggregated is None:
-					aggregated = block_avg_attn
-				else:
-					aggregated += block_avg_attn
-
-			aggregated /= len(tokens)
-			return torch.from_numpy(aggregated)
-
-		for trgt_block in COND_BLOCKS:
-			cond_attn = _aggregate_attns(cond_prompt_attns, trgt_block=trgt_block, tokens=cond_tokens)
-			gen_attn = _aggregate_attns(gen_prompt_attns, trgt_block=trgt_block, tokens=gen_tokens)
-
-			avg_diff = cond_attn - gen_attn
-
-			masks[trgt_block] = 1 - avg_diff
-			# masks[trgt_block] = gen_attn
-			# masks[trgt_block][avg_diff > self.diff_threshold] = 0
-
-			to_pil(masks[trgt_block]).save(f"{save_dir}/{trgt_block}-{trgt_tokens}.png")
-
-		return masks
 
 	def get_focus_ids(self, prompts: List[Tuple[str, str]]):
 		focus_indexes: List[List[int]] = list()
@@ -257,7 +182,6 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		callback_on_step_end_tensor_inputs: List[str] = ["latents"],
 
 		use_attn_bias: bool = False,
-		edit_args: Optional[SemanticStableDiffusionPipelineArgs] = None,
 		**kwargs,
 	):
 		r"""
@@ -444,24 +368,11 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 			clip_skip=self.clip_skip,
 		)
 
-		if edit_args is not None:
-			edit_concepts, _ = self.encode_prompt(
-				[x for item in edit_args.editing_prompt for x in repeat(item, batch_size)],
-				device,
-				num_images_per_prompt,
-				False,
-				lora_scale=text_encoder_lora_scale,
-				clip_skip=self.clip_skip,
-			)
-
 		# For classifier free guidance, we need to do two forward passes.
 		# Here we concatenate the unconditional and text embeddings into a single batch
 		# to avoid doing two forward passes
 		if self.do_classifier_free_guidance:
-			if edit_args is not None:
-				prompt_embeds = torch.cat([negative_prompt_embeds, prompt_embeds, edit_concepts])
-			else:
-				prompt_embeds = torch.cat([negative_prompt_embeds, prompt_embeds])
+			prompt_embeds = torch.cat([negative_prompt_embeds, prompt_embeds])
 
 		if ip_adapter_image is not None:
 			output_hidden_state = False if isinstance(self.unet.encoder_hid_proj, ImageProjection) else True
@@ -483,8 +394,6 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 				dtype=controlnet.dtype,
 				do_classifier_free_guidance=self.do_classifier_free_guidance,
 				guess_mode=guess_mode,
-
-				enabled_editing_prompts=0 if edit_args is None else edit_args.enabled_editing_prompts
 			)
 			height, width = image.shape[-2:]
 		elif isinstance(controlnet, MultiControlNetModel):
@@ -501,8 +410,6 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					dtype=controlnet.dtype,
 					do_classifier_free_guidance=self.do_classifier_free_guidance,
 					guess_mode=guess_mode,
-
-					enabled_editing_prompts=0 if edit_args is None else edit_args.enabled_editing_prompts
 				)
 
 				images.append(image_)
@@ -565,9 +472,6 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		is_controlnet_compiled = is_compiled_module(self.controlnet)
 		is_torch_higher_equal_2_1 = is_torch_version(">=", "2.1")
 
-		if edit_args is not None:
-			edit_guidance = EditGuidance(device, edit_args)
-
 		with self.progress_bar(total=num_inference_steps) as progress_bar:
 			for i, t in enumerate(timesteps):
 				# Relevant thread:
@@ -575,7 +479,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 				if (is_unet_compiled and is_controlnet_compiled) and is_torch_higher_equal_2_1:
 					torch._inductor.cudagraph_mark_step_begin()
 				# expand the latents if we are doing classifier free guidance
-				latent_dup_num = 2 if edit_args is None else 2 + edit_args.enabled_editing_prompts
+				latent_dup_num = 2
 				latent_model_input = torch.cat([latents] * latent_dup_num) if self.do_classifier_free_guidance else latents
 				latent_model_input = self.scheduler.scale_model_input(latent_model_input, t)
 
@@ -609,40 +513,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					cross_attention_kwargs=self.cross_attention_kwargs,
 					return_dict=False,
 					output_name=output_name,
-					# attn_options={
-					# 	"prefix": "",
-					# 	"return_dict": True,
-					# 	"ignore_special_tkns": self.ignore_special_tkns
-					# }
 				)
-				"""
-				inferred_masks = None
-				if use_attn_diff is True:
-					_, _2, cond_prompt_attn = self.control_branch_forward(
-						control_model_input,
-						t,
-						prompt=condition_prompt,
-						encoder_hidden_states=cond_prompt_embeds,
-						controlnet_cond=image,
-						conditioning_scale=cond_scale,
-						guess_mode=guess_mode,
-						return_dict=False,
-						output_name=output_name,
-						attn_options={
-							"prefix": "sub-",
-							"return_dict": True,
-							"ignore_special_tkns": self.ignore_special_tkns
-						}
-					)
-
-					inferred_masks = self.infer_alpha_mask(
-						output_name=output_name,
-						timestep=t,
-						cond_prompt_attns=cond_prompt_attn,
-						gen_prompt_attns=gen_prompt_attn,
-						trgt_tokens=diff_phrases
-					)
-				"""
 
 				prev_t_attns = None
 				if focus_prompt is not None and IS_PREPARE_PHASE is False:
@@ -695,23 +566,11 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 					return_dict=False,
 				)[0]
 
-				if IS_PREPARE_PHASE and edit_args is not None:
-					noise_pred_uncond, noise_pred_text, *noise_pred_edit_concepts = noise_pred.chunk(latent_dup_num)
-
-					subject_conflict_degree = noise_pred_edit_concepts[0] - noise_pred_edit_concepts[1]
-					subject_conflict_degree = (subject_conflict_degree ** 2).mean()
-					self.unet.alphas[t.item()] = 0.5 - 10 * subject_conflict_degree
-
 				# perform guidance
 				if self.do_classifier_free_guidance:
 					noise_pred_uncond, noise_pred_text, *noise_pred_edit_concepts = noise_pred.chunk(latent_dup_num)
 					noise_pred_edit_concepts = None if len(noise_pred_edit_concepts) == 0 else torch.cat(noise_pred_edit_concepts)
 					noise_guidance = self.guidance_scale * (noise_pred_text - noise_pred_uncond)
-
-					if edit_args is not None and edit_args.enable_edit_guidance:
-						edit_guidance.init_components(num_inference_steps, noise_pred_edit_concepts, noise_pred_text, noise_guidance)
-						noise_guidance = edit_guidance.calc_guidance(infer_step=i, noise_pred_edit_concepts=noise_pred_edit_concepts, noise_pred_uncond=noise_pred_uncond, noise_guidance=noise_guidance)
-
 					noise_pred = noise_pred_uncond + noise_guidance
 
 				# compute the previous noisy sample x_t -> x_t-1
