@@ -1,6 +1,6 @@
 #!/bin/bash
 
-control="depth"
+control="canny"
 
 # ControlNet
 if [[ "$1" == "ControlNet" ]]; then
