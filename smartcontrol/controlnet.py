@@ -246,7 +246,7 @@ class SmartControlPipeline(StableDiffusionControlNetPipeline):
 		ip_adapter_image: Optional[PipelineImageInput] = None,
 		output_type: Optional[str] = "pil",
 		return_dict: bool = True,
-		focus_tokens: Optional[Union[str, List[str]]] = None,
+		focus_prompt: Optional[Union[str, List[str]]] = None,
 		cross_attention_kwargs: Optional[Dict[str, Any]] = None,
 		controlnet_conditioning_scale: Union[float, List[float]] = 1.0,
 		guess_mode: bool = False,
