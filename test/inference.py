@@ -10,7 +10,9 @@ from pytorch_lightning import seed_everything
 from lib import (assert_path, image_grid, init_store_attn_map,
                  save_alpha_masks, save_attention_maps)
 from smartcontrol import SmartControlPipeline, register_unet
+
 from .types import ModelType
+
 
 class GenerateParam(TypedDict):
 	seed: int
@@ -96,19 +98,29 @@ class EvalModel():
 		name = " ".join(no_extension.split("/")[-2:])
 		return name
 
-	def _is_already_generated(self, output_name, seed):
-		save_dir = f"{self.output_dir}/{self.modelType.name}/{output_name}"
-		target = f"{save_dir}/generated - seed {seed}.png"
 
-		return os.path.exists(target)
+	def _is_already_generated(self, ref_subj, prmpt_subj, prompt, seed, alpha_mask=[1.0], prefix=""):
+		save_dir = f"{self.output_dir}/{ref_subj}/{prmpt_subj}/{prompt}/{self.modelType.name}/{self.control}"
+		filename = f"{save_dir}/{prefix}seed {seed}.png"
+		if self.modelType.name == "ControlNet":
+			filename = f"{save_dir}/alpha {alpha_mask} - seed {seed}.png"
 
-	def inference_ControlNet(self, prompt: str, reference: str, seed: int, alpha_mask: List[float] = [1.0], **kwargs):
-		output_name = f"ControlNet {alpha_mask} - {prompt} with {self._filepath2name(reference)}"
-		if self._is_already_generated(output_name, seed):
-			print(f"{output_name} - seed {seed}  is already generated. Skipping.")
-			return None, None
+		self.save_dir = save_dir
+		self.filename = filename
+
+		return os.path.exists(filename)
+
+	def inference_ControlNet(self, prompt: str, reference: str, ref_subj: str, prmpt_subj: str, seed: int, alpha_mask: List[float] = [1.0], **kwargs):
+		if self._is_already_generated(ref_subj, prmpt_subj, prompt, seed, alpha_mask):
+			print(f"{self.filename} is already generated. Skipping.")
+			return None
+			# print(f"{self.filename} is already generated. Overwriting.")
 
 		control_img = self._prepare_control(reference)
+		pipe_options = {
+			"ignore_special_tkns": True
+		}
+		self.pipe.options = pipe_options
 
 		init_store_attn_map(self.pipe)
 		register_unet(self.pipe, None, mask_options={
@@ -116,7 +128,7 @@ class EvalModel():
 			"fixed": True
 		})
 
-		self._record_generate_params(seed=seed, prompt=prompt, ignore_special_tkns=False)
+		self._record_generate_params(seed=seed, prompt=prompt, ignore_special_tkns=True)
 
 		seed_everything(seed)
 		output = self.pipe(
@@ -124,15 +136,19 @@ class EvalModel():
 			image=control_img
 		).images[0]
 
-		return output, output_name
+		return output
 
-	def inference_SmartControl(self, prompt: str, reference: str, seed: int, **kwargs):
-		output_name = f"SmartControl - {prompt} with {self._filepath2name(reference)}"
-		if self._is_already_generated(output_name, seed):
-			print(f"{output_name} - seed {seed} is already generated. Skipping.")
-			return None, None
+	def inference_SmartControl(self, prompt: str, reference: str, ref_subj: str, prmpt_subj: str, seed: int, **kwargs):
+		if self._is_already_generated(ref_subj, prmpt_subj, prompt, seed):
+			print(f"{self.filename} is already generated. Skipping.")
+			return None
+			# print(f"{self.filename} is already generated. Overwriting.")
 
 		control_img = self._prepare_control(reference)
+		pipe_options = {
+			"ignore_special_tkns": True
+		}
+		self.pipe.options = pipe_options
 
 		init_store_attn_map(self.pipe)
 		register_unet(self.pipe,
@@ -142,7 +158,7 @@ class EvalModel():
 					"fixed": False
 		})
 
-		self._record_generate_params(seed=seed, prompt=prompt, ignore_special_tkns=False)
+		self._record_generate_params(seed=seed, prompt=prompt, ignore_special_tkns=True)
 
 		seed_everything(seed)
 		output = self.pipe(
@@ -150,22 +166,28 @@ class EvalModel():
 			image=control_img
 		).images[0]
 
-		return output, output_name
+		return output
 
-	def inference_ControlAttend(self, prompt: str, reference: str, seed: int, mask_prompt, focus_tokens, **kwargs):
-		output_name = f"ControlAttend - {prompt} with {self._filepath2name(reference)} focusing on {focus_tokens} of {mask_prompt}"
-		if self._is_already_generated(output_name, seed):
-			print(f"{output_name} - seed {seed}  is already generated. Skipping.")
-			return None, None
+	def inference_ControlAttend(self, prompt: str, reference: str, ref_subj: str, prmpt_subj: str, seed: int, mask_prompt, focus_tokens, save_attn: bool = False, **kwargs):
+		use_attn_bias = "use_attn_bias" in kwargs and kwargs["use_attn_bias"] is True
+		filename_prefix = "" if "filename_prefix" not in kwargs else kwargs["filename_prefix"]
+
+		if self._is_already_generated(ref_subj, prmpt_subj, prompt, seed, prefix=filename_prefix):
+			# print(f"{self.filename} is already generated. Overwriting.")
+			print(f"{self.filename} is already generated. Skipping.")
+			# return
+
 
 		control_img = self._prepare_control(reference)
 
 		pipe_options = {
-			"ignore_special_tkns": True
+			"ignore_special_tkns": True,
+			"ref_subj": ref_subj,
+			"prmpt_subj": prmpt_subj
 		}
 		self.pipe.options = pipe_options
 
-		init_store_attn_map(self.pipe)
+		init_store_attn_map(self.pipe, use_attn_bias=use_attn_bias)
 		register_unet(
 			pipe=self.pipe,
 			smart_ckpt=None,
@@ -177,22 +199,26 @@ class EvalModel():
 
 		seed_everything(seed)
 
-		self.pipe(
+		spatial_sample = self.pipe(
 			prompt=mask_prompt,
 			image=control_img,
 			prepare_phase=True,
-		)
-		save_attention_maps(
-			self.pipe.unet.attn_maps,
-			self.pipe.tokenizer,
-			base_dir=f"{os.getcwd()}/log/attn_maps/{self.modelType.name}/{output_name}/{mask_prompt}",
-			prompts=[mask_prompt],
-			options={
-				"prefix": "",
-				"return_dict": False,
-				"ignore_special_tkns": True,
-				"enabled_editing_prompts": 0
-		})
+		).images[0]
+		assert_path(self.save_dir)
+		spatial_sample.save(self.save_dir + "/spatial_sample.png")
+
+		if save_attn:
+			save_attention_maps(
+				self.pipe.unet.attn_maps,
+				self.pipe.tokenizer,
+				base_dir=f"{os.getcwd()}/log/attn_maps/{self.modelType.name}/{prompt}/{mask_prompt}",
+				prompts=[mask_prompt],
+				options={
+					"prefix": "",
+					"return_dict": False,
+					"ignore_special_tkns": True,
+					"enabled_editing_prompts": 0
+			})
 
 		self._record_generate_params(seed=seed, prompt=prompt, ignore_special_tkns=True)
 
@@ -210,30 +236,34 @@ class EvalModel():
 			mask_prompt=mask_prompt,
 			focus_tokens = focus_tokens,
 			image=control_img,
-			prepare_phase=False
+			prepare_phase=False,
+			use_attn_bias=use_attn_bias
 		).images[0]
 
-		return output, output_name
+		if save_attn:
+			save_alpha_masks(self.pipe.unet.alpha_masks, f'{os.getcwd()}/log/alpha_masks/{self.modelType.name}/{prompt}')
 
-	def postprocess(self, image, image_name, save_attn: bool = False):
-		if image is None or image_name is None:
+		return output
+
+	def postprocess(self, image, save_attn: bool = False):
+		if image is None:
 			return
 
-		save_dir = f"{self.output_dir}/{self.modelType.name}/{image_name}"
-		assert_path(save_dir)
-		image.save(f"{save_dir}/generated - seed {self.generate_param['seed']}.png")
+		assert_path(self.save_dir)
+		image.resize((512, 512)).save(self.filename)
+		self.control_img.resize((512, 512)).save(f"{self.save_dir}/{self.control} condition.png")
 		comparison = image_grid([
 		  		self.reference.resize((512, 512)),
-				self.control_img.resize((512, 512)),
-		 		image.resize((512, 512))
+					self.control_img.resize((512, 512)),
+					image.resize((512, 512))
 		   ], 1, 3)
-		comparison.save(f"{save_dir}/control_result - seed {self.generate_param['seed']}.png")
+		comparison.save(f"{self.save_dir}/{self.control} control result - seed {self.generate_param['seed']}.png")
 
 		if save_attn:
 			save_attention_maps(
 			self.pipe.unet.attn_maps,
 			self.pipe.tokenizer,
-			base_dir=f"{os.getcwd()}/log/attn_maps/{self.modelType.name}/{image_name}",
+			base_dir=f"{os.getcwd()}/log/attn_maps/{self.modelType.name}/{self.generate_param['prompt']}",
 			prompts=[self.generate_param["prompt"]],
 			options={
 				"prefix": "",
@@ -241,6 +271,5 @@ class EvalModel():
 				"ignore_special_tkns": self.generate_param["ignore_special_tkns"],
 				"enabled_editing_prompts": 0
 			})
-			save_alpha_masks(self.pipe.unet.alpha_masks, f'{os.getcwd()}/log/alpha_masks/{self.modelType.name}/{image_name}')
 
-		print(f"Saved results for {image_name}")
+		print(f"Saved results for {self.filename}")

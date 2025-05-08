@@ -1,6 +1,6 @@
 import argparse
 import os
-from typing import List, TypedDict, Optional
+from typing import List, Optional, TypedDict
 from warnings import warn
 
 subjects = ["dog"]
@@ -16,8 +16,9 @@ class Action(TypedDict):
 actions: List[Action] = [{
 	"prompt": "A {subject} playing a trumpet",
 	"mask_prompt": "A man playing a trumpet",
-	"focus_tokens": "playing",
-	"reference": "Trumpet.png",
+	"focus_prompt": "playing trumpet",
+	# "reference": "Trumpet.png",
+	"reference":"bike.png",
 	"control": "depth"
 },{
 	"prompt": "A {subject} doing handstand exercise",

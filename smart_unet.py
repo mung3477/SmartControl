@@ -1,4 +1,5 @@
 from typing import Any, Dict, List, Optional, Tuple, Union
+import copy
 
 import torch
 import torch.nn as nn
@@ -12,7 +13,7 @@ from diffusers.utils.torch_utils import apply_freeu
 from torchvision import transforms as T
 
 from lib import (AlphaOptions, choose_alpha_mask, generate_mask,
-                 get_paired_resblock_mask)
+                 get_paired_resblock_mask, push_key_value)
 
 
 def ca_forward(self, mask_options: AlphaOptions):
@@ -32,6 +33,7 @@ def ca_forward(self, mask_options: AlphaOptions):
         down_intrablock_additional_residuals: Optional[Tuple[torch.Tensor]] = None,
         # inferred_masks: Optional[Dict] = None,
         prev_t_attns: Optional[Dict] = None,
+        attn_bias: Optional[Dict] = None,
         encoder_attention_mask: Optional[torch.Tensor] = None,
         return_dict: bool = True,
     ) -> Union[UNet2DConditionOutput, Tuple]:
@@ -270,13 +272,17 @@ def ca_forward(self, mask_options: AlphaOptions):
         # 4. mid
         if self.mid_block is not None:
             if hasattr(self.mid_block, "has_cross_attention") and self.mid_block.has_cross_attention:
-
+                ############################################
+                mid_block_CA_kwargs = copy.deepcopy(cross_attention_kwargs)
+                if attn_bias is not None:
+                    mid_block_CA_kwargs["attn_bias"] = attn_bias["mid_block.attentions"][0]
+                ############################################
                 sample = self.mid_block(
                     sample,
                     emb,
                     encoder_hidden_states=encoder_hidden_states,
                     attention_mask=attention_mask,
-                    cross_attention_kwargs=cross_attention_kwargs,
+                    cross_attention_kwargs=mid_block_CA_kwargs,
                     encoder_attention_mask=encoder_attention_mask,
                 )
             else:
@@ -336,7 +342,7 @@ def ca_forward(self, mask_options: AlphaOptions):
             # orig_sample = sample
             sample = sample + c * mid_block_additional_residual
 
-            if hasattr(self, "store_alpha_mask"):
+            if hasattr(self.mid_block, "store_alpha_mask"):
                 self.mid_block.alpha_mask = c
                 self.mid_block.timestep = int(timestep.item())
 
@@ -371,12 +377,18 @@ def ca_forward(self, mask_options: AlphaOptions):
                     if timestep.item() in self.alphas.keys():
                         attn_inferred_mask *= self.alphas[timestep.item()]
 
+                ############################################
+                up_block_CA_kwargs = copy.deepcopy(cross_attention_kwargs)
+                if attn_bias is not None:
+                    up_block_CA_kwargs["attn_biases"] = attn_bias[f"up_blocks.{i}"]
+                ############################################
+
                 sample = upsample_block(
                     hidden_states=sample,
                     temb=emb,
                     res_hidden_states_tuple=res_samples,
                     encoder_hidden_states=encoder_hidden_states,
-                    cross_attention_kwargs=cross_attention_kwargs,
+                    cross_attention_kwargs=up_block_CA_kwargs,
                     upsample_size=upsample_size,
                     attention_mask=attention_mask,
                     encoder_attention_mask=encoder_attention_mask,
@@ -559,7 +571,7 @@ def crossattnupblock2d_forward(self):
         )
         count =0
 
-        for resnet, attn in zip(self.resnets, self.attentions):
+        for i, (resnet, attn) in enumerate(zip(self.resnets, self.attentions)):
             # pop res hidden states
             res_hidden_states = res_hidden_states_tuple[-1]
             res_hidden_states_tuple = res_hidden_states_tuple[:-1]
@@ -646,6 +658,12 @@ def crossattnupblock2d_forward(self):
                 )[0]
             else:
                 hidden_states = resnet(hidden_states, temb, scale=lora_scale)
+
+                ############################################################
+                if "attn_biases" in cross_attention_kwargs:
+                    cross_attention_kwargs = push_key_value(cross_attention_kwargs, "attn_bias", cross_attention_kwargs["attn_biases"][i])
+                ############################################################
+
                 hidden_states = attn(
                     hidden_states,
                     encoder_hidden_states=encoder_hidden_states,

@@ -1,12 +1,15 @@
 import os
 from typing import List, TypedDict
 
+import cv2
 import torch
 import torch.nn.functional as F
 from torchvision.transforms import ToPILImage
+from tqdm import tqdm
 from transformers import CLIPTokenizer
 
 from ..utils.file import assert_path
+from ..utils.image import gray2colormap
 
 
 class AttnSaveOptions(TypedDict):
@@ -69,17 +72,16 @@ def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps',
 
 	assert_path(base_dir)
 
-	total_attn_map = list(list(attn_maps.values())[0].values())[0].sum(1) # If we use AttnProcessor2.0, batch attn_head h w attn_dim -> batch h w attn_dim
-	if unconditional:
-		total_attn_map = total_attn_map.chunk(bsz)[1]  # (batch, height, width, attn_dim)
-
-
-	total_attn_map = total_attn_map.permute(0, 3, 1, 2)
-	total_attn_map = torch.zeros_like(total_attn_map)
+	# total_attn_map = list(list(attn_maps.values())[0].values())[0].sum(1) # If we use AttnProcessor2.0, batch attn_head h w attn_dim -> batch h w attn_dim
+	# if unconditional:
+	# 	total_attn_map = total_attn_map.chunk(bsz)[1]  # (batch, height, width, attn_dim)
+	# total_attn_map = total_attn_map.permute(0, 3, 1, 2)
+	# total_attn_map = torch.zeros_like(total_attn_map)
+	total_attn_map = torch.zeros(1, len(total_marked_tokens[0]),  512, 512)
 	total_attn_map_shape = total_attn_map.shape[-2:]
 	total_attn_map_number = 0
 
-	for timestep, layers in attn_maps.items():
+	for timestep, layers in tqdm(attn_maps.items(), desc="Saving attention maps"):
 		timestep_dir = os.path.join(base_dir, f'{timestep}')
 		assert_path(timestep_dir)
 
@@ -97,7 +99,7 @@ def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps',
 			total_attn_map += resized_attn_map
 			total_attn_map_number += 1
 
-			for batch, (tokens, attn) in enumerate(zip(total_marked_tokens, attn_map)):
+			for batch, (tokens, attn) in enumerate(zip(total_marked_tokens, resized_attn_map)):
 				batch_dir = os.path.join(layer_dir, f'batch-{batch}')
 				if not os.path.exists(batch_dir):
 					os.mkdir(batch_dir)
@@ -108,8 +110,9 @@ def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps',
 					filename = f'{options["prefix"]}{i}-{token}.png'
 					organized_attn_maps[batch_dir][filename] = a
 
-					a_img = to_pil(a.to(torch.float32))
-					a_img.save(os.path.join(batch_dir, filename))
+					colormap = gray2colormap(a.to(torch.float32))
+					# a_img.save(os.path.join(batch_dir, filename))
+					cv2.imwrite(os.path.join(batch_dir, filename), colormap)
 
 
 	total_attn_map /= total_attn_map_number
@@ -119,7 +122,9 @@ def save_attention_maps(attn_maps, tokenizer, prompts, base_dir='log/attn_maps',
 			os.mkdir(batch_dir)
 
 		for i, (token, a) in enumerate(zip(tokens, attn_map[:len(tokens)])):
-			a_img = to_pil(a.to(torch.float32)).save(os.path.join(batch_dir, f'{i}-{token}.png'))
+			colormap = gray2colormap(a.to(torch.float32))
+			# a_img.save(os.path.join(batch_dir, f'{i}-{token}.png'))
+			cv2.imwrite(os.path.join(batch_dir, f'{i}-{token}.png'), colormap)
 
 	if options["return_dict"]:
 		return organized_attn_maps

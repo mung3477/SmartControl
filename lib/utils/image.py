@@ -1,6 +1,8 @@
 import os
 from typing import Tuple, TypedDict
 
+import cv2
+import numpy as np
 from PIL import Image, ImageChops, ImageDraw
 
 
@@ -40,3 +42,8 @@ def calc_diff(img1: Image.Image , img2: Image.Image, name: str):
     )
     grid.save(f"{name}.png")
     print(f"attention difference were saved at {name}.png")
+
+def gray2colormap(gray):
+    gray_numpy = (gray * 255).byte().numpy()
+    colormap = cv2.applyColorMap(gray_numpy, cv2.COLORMAP_JET)
+    return colormap
