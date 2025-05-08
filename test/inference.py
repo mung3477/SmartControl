@@ -175,7 +175,7 @@ class EvalModel():
 		if self._is_already_generated(ref_subj, prmpt_subj, prompt, seed, prefix=filename_prefix):
 			# print(f"{self.filename} is already generated. Overwriting.")
 			print(f"{self.filename} is already generated. Skipping.")
-			# return
+			return
 
 
 		control_img = self._prepare_control(reference)
