@@ -7,7 +7,7 @@ from PIL import Image
 from pytorch_lightning import seed_everything
 
 from ip_adapter import IPAdapter
-from lib import image_grid, init_store_attn_map, make_img_name, parse_args, save_attention_maps, assert_path
+from lib import image_grid, init_store_attn_map, make_img_name, parse_args, save_attention_maps, assert_path, save_alpha_masks
 from smartcontrol import SmartControlPipeline, register_unet
 
 image_dir = "./assets/images"
@@ -21,19 +21,33 @@ controlnet_path = "lllyasviel/control_v11f1p_sd15_depth"
 device = "cuda"
 save_attn = True
 
+
+########## Generation arguments ################
+seed = 1
+ref = "/root/Desktop/workspace/SmartControl/assets/images/bike.png"
+ip = "/root/Desktop/workspace/SmartControl/assets/images/testudo.jpg"
+prompt = "A turtle is riding a bike"
+prmpt_subj = "A turtle"
+mask_prompt = "A man is riding a bike"
+ref_subj = "A man"
+focus_prompt = "riding bike"
+use_attn_bias = True
+
 def main():
     args = parse_args()
 
-    image_fp = f"{image_dir}/{args.ref}"
-    ip_fp = f"{image_dir}/{args.ip}"
+    image_fp = ref
+    ip_fp = ip
     image = Image.open(image_fp)
     control_img = preprocessor(image)
     ip_image = Image.open(ip_fp).resize((512,512))
-    prompt = args.prompt
-    mask_prompt = args.mask_prompt
-    focus_tokens = args.focus_tokens
+    prompt = prompt
+    mask_prompt = mask_prompt
+    focus_prompt = focus_prompt
     pipe_options = {
-        "ignore_special_tkns": True
+        "ignore_special_tkns": True,
+        "ref_subj": ref_subj,
+        "prmpt_subj": prmpt_subj
     }
 
     controlnet = ControlNetModel.from_pretrained(controlnet_path, torch_dtype=torch.float16)
@@ -45,7 +59,7 @@ def main():
     pipe.scheduler = UniPCMultistepScheduler.from_config(pipe.scheduler.config)
     pipe.enable_model_cpu_offload()
     ip_model = IPAdapter(pipe, image_encoder_path, ip_ckpt, device)
-    init_store_attn_map(pipe)
+    init_store_attn_map(pipe, use_attn_bias=use_attn_bias)
     register_unet(
         pipe,
         smart_ckpt=None,
@@ -55,13 +69,13 @@ def main():
         }
     )
 
-    seed_everything(args.seed)
+    seed_everything(seed)
 
 
     pipe(
 			prompt=mask_prompt,
 			image=control_img,
-			# prepare_phase=True,
+			prepare_phase=True,
     ).images[0]
     save_attention_maps(
 			pipe.unet.attn_maps,
@@ -86,11 +100,11 @@ def main():
     )
 
     ip_model.pipe = pipe
-    output = ip_model.generate(pil_image=ip_image, prompt=prompt, mask_prompt=mask_prompt, focus_tokens=focus_tokens, image=control_img, num_samples=1, num_inference_steps=50, controlnet_conditioning_scale = 1.0)[0]
+    output = ip_model.generate(pil_image=ip_image, prompt=prompt, mask_prompt=mask_prompt, focus_tokens=focus_prompt, image=control_img, num_samples=1, num_inference_steps=50, controlnet_conditioning_scale = 1.0)[0]
     # output = ip_model.generate(pil_image=ip_image, prompt=prompt, image=control_img, num_samples=1, num_inference_steps=50, controlnet_conditioning_scale = 1.0)[0]
 
     assert_path(f"output/ip_adapter")
-    output.save(f"output/ip_adapter/{prompt}.png")
+    output.resize((512, 512)).save(f"output/ip_adapter/{prompt}.png")
     image = image_grid([ip_image.resize((256, 256)), control_img.resize((256, 256)),output.resize((256,256))], 1, 3, options={"fill": (255, 255, 255)})
 
 
@@ -109,7 +123,7 @@ def main():
             "ignore_special_tkns": True,
             "enabled_editing_prompts": 0
         })
-        save_alpha_masks(self.pipe.unet.alpha_masks, f'{os.getcwd()}/log/alpha_masks/IPAdapter/{prompt}')
+        save_alpha_masks(pipe.unet.alpha_masks, f'{os.getcwd()}/log/alpha_masks/IPAdapter/{prompt}')
 
 
 if __name__ == "__main__":

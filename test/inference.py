@@ -168,7 +168,7 @@ class EvalModel():
 
 		return output
 
-	def inference_ControlAttend(self, prompt: str, reference: str, ref_subj: str, prmpt_subj: str, seed: int, mask_prompt, focus_tokens, save_attn: bool = False, **kwargs):
+	def inference_ControlAttend(self, prompt: str, reference: str, ref_subj: str, prmpt_subj: str, seed: int, mask_prompt, focus_prompt, save_attn: bool = False, **kwargs):
 		use_attn_bias = "use_attn_bias" in kwargs and kwargs["use_attn_bias"] is True
 		filename_prefix = "" if "filename_prefix" not in kwargs else kwargs["filename_prefix"]
 
@@ -234,7 +234,7 @@ class EvalModel():
 		output = self.pipe(
 			prompt=prompt,
 			mask_prompt=mask_prompt,
-			focus_tokens = focus_tokens,
+			focus_prompt = focus_prompt,
 			image=control_img,
 			prepare_phase=False,
 			use_attn_bias=use_attn_bias
