@@ -1,8 +1,7 @@
 import argparse
 import os
 from test.inference import EvalModel
-from test.test_set import (animal_prompts, animal_subjects, human_prompts,
-                           human_subjects, seeds, selected)
+from test.test_set import (animal_subjects, seeds, selected)
 from test.types import ModelType
 from typing import Callable, Optional
 
@@ -141,7 +140,7 @@ def test_significant_conflict(
 def test_selected_sig_conflict(
 	eval: EvalModel,
 	inference: Callable,
-	output_dir: str = f"{os.getcwd()}/test/human_eval/significant",
+	output_dir: str = f"{os.getcwd()}/test/human_eval/significant_conflict",
 	alpha_mask: str = "1",
 	save_attn: bool = False,
 	seed_idx: Optional[int] = None,
@@ -179,7 +178,7 @@ def test_selected_sig_conflict(
 def test_selected_mild_conflict(
 	eval: EvalModel,
 	inference: Callable,
-	output_dir: str = f"{os.getcwd()}/test/human_eval/mild",
+	output_dir: str = f"{os.getcwd()}/test/human_eval/mild_conflict",
 	alpha_mask: str = "1",
 	save_attn: bool = False,
 	seed_idx: Optional[int] = None,
@@ -249,9 +248,9 @@ def main():
 		seed_idx=args.seed_idx,
 		for_loop_idx=args.for_loop_idx,
 		init_subject_idx=args.init_subject_idx,
-		output_dir=f"{os.getcwd()}/test/human_eval/significant",
+		output_dir=f"{os.getcwd()}/test/human_eval/significant_conflict",
 		save_attn=False,
-		use_attn_bias=True,
+		use_attn_bias=False,
 		# filename_prefix="biased with triple of mean ratio "
 		filename_prefix=""
 	)
@@ -262,7 +261,7 @@ def main():
 	# 	seed_idx=args.seed_idx,
 	# 	for_loop_idx=args.for_loop_idx,
 	# 	init_subject_idx=args.init_subject_idx,
-	# 	# output_dir=f"{os.getcwd()}/test/human_eval/significant",
+	# 	# output_dir=f"{os.getcwd()}/test/human_eval/mild_conflict",
 	# 	save_attn=False,
 	# 	use_attn_bias=False,
 	# 	# filename_prefix="biased with mean ratio "

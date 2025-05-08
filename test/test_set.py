@@ -51,7 +51,7 @@ selected: Dict[str, List[Union[Selected, SelectedMild]]] = {
             "focus_tokens": "riding bike"
         },
         {
-            "ref": "selected/significant_conflict/a man is stretching his arms left and right.jpg",
+            "ref": "selected/significant_conflict/a man is stretching it's arms left and right.jpg",
             "ref_subj": "a man",
             "prompt": "{subject} is stretching it's arms left and right",
             "mask_prompt": "a man is stretching his arms left and right",
